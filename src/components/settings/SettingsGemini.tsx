@@ -1,3 +1,5 @@
+"use client";
+
 import { Brain, Save, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
