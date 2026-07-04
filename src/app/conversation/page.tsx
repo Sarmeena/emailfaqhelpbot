@@ -26,28 +26,32 @@ export default function ConversationPage() {
       <Header />
 
       <main className="min-h-screen bg-gray-100 md:ml-64">
-        <ConversationHeader />
+        <ConversationHeader 
+          conversationId={selectedConversation} 
+          onStatusUpdated={() => setRefresh((prev) => prev + 1)}
+        />
 
         <div className="flex h-[calc(100vh-130px)] overflow-hidden">
           <ConversationHistory
-  selectedConversation={selectedConversation}
-  onSelectConversation={(id) => {
-    setSelectedConversation(id);
-    setComposerMessage("");
-  }}
-/>
+            key={refresh}
+            selectedConversation={selectedConversation}
+            onSelectConversation={(id) => {
+              setSelectedConversation(id);
+              setComposerMessage("");
+            }}
+          />
           <section className="flex flex-1 flex-col bg-white min-w-0">
             <ChatWindow
-  conversationId={selectedConversation}
-  onLatestCustomerMessage={setLatestCustomerMessage}
-/>
+              conversationId={selectedConversation}
+              onLatestCustomerMessage={setLatestCustomerMessage}
+            />
             <ChatComposer
-  conversationId={selectedConversation}
-  customerMessage={latestCustomerMessage}
-  onMessageSent={() => setRefresh((prev) => prev + 1)}
-  messageValue={composerMessage}
-  onMessageValueChange={setComposerMessage}
-/>
+              conversationId={selectedConversation}
+              customerMessage={latestCustomerMessage}
+              onMessageSent={() => setRefresh((prev) => prev + 1)}
+              messageValue={composerMessage}
+              onMessageValueChange={setComposerMessage}
+            />
           </section>
 
           <ConversationAIPanel

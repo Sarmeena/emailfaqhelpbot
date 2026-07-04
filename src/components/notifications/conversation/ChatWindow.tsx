@@ -37,7 +37,7 @@ export default function ChatWindow({
 
         const latestCustomer = [...data]
           .reverse()
-          .find((msg) => msg.sender === "customer");
+          .find((msg) => msg.sender !== "agent" && msg.sender !== "AI Assistant");
 
         if (latestCustomer) {
           onLatestCustomerMessage(latestCustomer.message);
@@ -50,6 +50,16 @@ export default function ChatWindow({
     return () => unsubscribe();
   }, [conversationId, onLatestCustomerMessage]);
 
+  const formatMessageTime = (ts: any) => {
+    if (!ts) return "Just now";
+    try {
+      const date = ts.toDate ? ts.toDate() : new Date(ts.seconds ? ts.seconds * 1000 : ts);
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch (e) {
+      return "Just now";
+    }
+  };
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -59,11 +69,9 @@ export default function ChatWindow({
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="flex flex-1 items-center justify-center">
-    <div className="animate-pulse text-gray-400">
-        Loading conversation...
-    </div>
-</div>
+        <div className="animate-pulse text-gray-400">
+          Loading conversation...
+        </div>
       </div>
     );
   }
@@ -80,14 +88,14 @@ export default function ChatWindow({
       {messages.length === 0 ? (
         <div className="flex h-full items-center justify-center text-gray-500">
           <div className="flex h-full flex-col items-center justify-center text-gray-500">
-    <p className="text-lg font-semibold">
-        No conversation yet
-    </p>
+            <p className="text-lg font-semibold">
+              No conversation yet
+            </p>
 
-    <p className="text-sm">
-        Start chatting to see messages.
-    </p>
-</div>
+            <p className="text-sm">
+              Start chatting to see messages.
+            </p>
+          </div>
         </div>
       ) : (
         messages.map((msg) => {
@@ -109,10 +117,7 @@ export default function ChatWindow({
                 </p>
 
                 <span className="mt-2 block text-[10px] text-gray-400">
-                  {msg.sender} • {msg.createdAt?.toDate().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {msg.sender} • {formatMessageTime(msg.createdAt)}
                 </span>
               </div>
             </div>
@@ -130,10 +135,7 @@ export default function ChatWindow({
                   {msg.message}
                 </p>
                 <span className="mt-2 block text-right text-[10px] text-blue-100">
-                  {msg.sender} • {msg.createdAt?.toDate().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {msg.sender} • {formatMessageTime(msg.createdAt)}
                 </span>
               </div>
             </div>

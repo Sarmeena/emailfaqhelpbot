@@ -24,9 +24,17 @@ export default function ConversationHistory({
         if (res.ok) {
           const json = await res.json();
           const data = json.conversations || [];
-          setConversations(data);
-          if (data.length > 0) {
-            onSelectConversation(data[0].id!);
+          
+          // Sort recent chats at the top by updatedAt seconds timestamp
+          const sorted = [...data].sort((a: any, b: any) => {
+            const aTime = a.updatedAt?.seconds || a.updatedAt?._seconds || 0;
+            const bTime = b.updatedAt?.seconds || b.updatedAt?._seconds || 0;
+            return bTime - aTime;
+          });
+
+          setConversations(sorted);
+          if (sorted.length > 0 && !selectedConversation) {
+            onSelectConversation(sorted[0].id!);
           }
         }
       } catch (error) {
@@ -37,14 +45,30 @@ export default function ConversationHistory({
     }
 
     loadConversations();
-  }, []);
-if (loading) {
-  return (
-    <aside className="hidden w-80 shrink-0 border-r bg-white lg:flex items-center justify-center">
-      Loading conversations...
-    </aside>
-  );
-}
+  }, [selectedConversation, onSelectConversation]);
+
+  const formatChatTime = (updatedAt: any) => {
+    if (!updatedAt) return "";
+    try {
+      const date = updatedAt.seconds 
+        ? new Date(updatedAt.seconds * 1000) 
+        : updatedAt._seconds 
+        ? new Date(updatedAt._seconds * 1000)
+        : new Date(updatedAt);
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch (e) {
+      return "";
+    }
+  };
+
+  if (loading) {
+    return (
+      <aside className="hidden w-80 shrink-0 border-r bg-white lg:flex items-center justify-center">
+        Loading conversations...
+      </aside>
+    );
+  }
+
   return (
     <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-r bg-white lg:flex">
       {/* Search */}
@@ -73,27 +97,29 @@ if (loading) {
               selectedConversation === chat.id ? "border-l-4 border-blue-600 bg-blue-50" : ""
             }`}
           >
-            <div className="mb-1 flex items-start justify-between">
-              <h3 className="font-semibold">{chat.customerName}</h3>
-              <p className="text-xs text-gray-400">
-  {chat.subject}
-</p>
-
-              <span className={`rounded-full px-2 py-1 text-xs font-medium ${
-    chat.status === "Open"
-      ? "bg-green-100 text-green-700"
-      : chat.status === "Pending"
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-blue-100 text-blue-700"
-  }`}
->
-  {chat.status}
+            <div className="mb-1 flex items-start justify-between gap-2">
+              <h3 className="font-bold text-gray-900 text-sm truncate flex-1">{chat.customerName}</h3>
+              <span className="text-[10px] text-gray-400 font-bold shrink-0">
+                {formatChatTime(chat.updatedAt)}
               </span>
             </div>
 
-            <p className="mt-2 truncate text-sm text-gray-600">
-  {chat.lastMessage}
-</p>
+            <div className="flex justify-between items-center gap-2">
+              <p className="text-xs text-gray-500 truncate flex-1 font-medium">{chat.subject}</p>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0 uppercase tracking-wide ${
+                chat.status === "Resolved"
+                  ? "bg-green-100 text-green-700"
+                  : chat.status === "Pending"
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}>
+                {chat.status}
+              </span>
+            </div>
+
+            <p className="mt-2 truncate text-xs text-gray-600 font-medium">
+              {chat.lastMessage}
+            </p>
           </div>
         ))}
       </div>

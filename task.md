@@ -72,8 +72,17 @@
   - [x] Hooked up `BroadcastTable.tsx` to load live broadcast campaigns from Firestore.
   - [x] Updated `TrendingFaqs.tsx` to map live top FAQs and default empty usage attributes to sliding counts.
   - [x] Converted `AIInsightCard.tsx` into a client component loading total requests and total FAQs in real-time.
-  - [x] Lifted active filter state inside the requests main page ([page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx)).
+  - [x] Lifted active filter state inside the requests main page (`src/app/requests/page.tsx`).
   - [x] Configured [FilterBar.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/FilterBar.tsx) to accept filter parameters and apply active classes to matching status blocks.
   - [x] Configured [RequestsTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestsTable.tsx) and [RequestCards.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestCards.tsx) to filter requests dynamically by status (Active, Pending, Resolved) and priority (High).
-  - [x] Added `useRef` selection range formatting helper to [CreateBroadcastEditor.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/createbroadcast/CreateBroadcastEditor.tsx#L27) to apply Bold (`**`), Italic (`*`), custom Link references, and Image tags directly to selected text inside the broadcast composer.
+  - [x] Added `useRef` selection range formatting helper to [CreateBroadcastEditor.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/createbroadcast/CreateBroadcastEditor.tsx) enabling the toolbar buttons (**Bold**, **Italic**, **Link**, **Image**) to wrap selected content dynamically inside the compose textarea.
+- [x] Synchronized Chat Statuses, Sorted Histories, & Time Indicators
+  - [x] Synchronized the document status between parallel `conversations` and `requests` collections inside [conversations.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/conversations.ts) `sendMessage` trigger (auto-transitioning tickets to `"In Progress"` when agents reply).
+  - [x] Rebuilt [ConversationHeader.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationHeader.tsx) to load live details, map priority banners, display ticket status dropdown selectors, and trigger a **"Resolve Ticket"** callback updating both collections.
+  - [x] Sorted conversations sidebar history list by message timestamp `updatedAt` in [ConversationHistory.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationHistory.tsx), positioning the most recent active threads at the top.
+  - [x] Added message time tags to history preview cards in `ConversationHistory.tsx` and chat message blocks in [ChatWindow.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatWindow.tsx) using safe parse logic to handle server timestamps.
+  - [x] Wired refreshing reload keys inside the parent layout wrapper [conversation/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/conversation/page.tsx) to trigger immediate interface updates on state changes.
+  - [x] Fixed client finder block inside `ChatWindow.tsx` to detect incoming emails correctly.
+- [x] Firebase Module Factory Resolution (Next.js Turbopack)
+  - [x] Prepend `"use client";` to the auth service utility module [auth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/auth/auth.ts) to force Next.js Turbopack compiler to isolate imports from `@firebase/auth`/`firebase/auth` and resolve module factory linkage errors.
 - [x] Verify integration works correctly.
