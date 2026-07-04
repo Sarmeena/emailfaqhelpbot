@@ -1,21 +1,28 @@
-# Walkthrough - Conversations Sidebar Link and Backend Route
+# Walkthrough - Navigation Links, Sidebar Customization, and backend APIs
 
-We have successfully added the "Conversations" button to the Sidebar navigation, linked it to the `/conversation` page, refactored the conversation component layer to use a Next.js backend API route `/api/conversations`, and simplified the header details.
+We have completed the dashboard cleanups, sidebar menu customization (renaming KB Search, removing UI Library, and adding Settings link), unified settings layout routing, and implemented the backend CRUD endpoint for FAQ management.
 
 ## Changes Made
 
-### Navigation Links
-* **Sidebar**: Modified [Sidebar.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/layout/Sidebar.tsx) to import `MessageSquare` from `lucide-react` and add it to the menu routing array, linking "Conversations" directly to the `/conversation` route.
+### Dashboard Cleanups
+* **Dashboard Buttons**: Removed the "New Broadcast" and "Add FAQ" buttons from the dashboard header area in [page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/dashboard/page.tsx).
 
-### Backend Routing
-* **API Route**: Created [route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/conversations/route.ts) with `GET` and `POST` handlers:
-  - `GET`: Returns lists of active conversations, or returns individual conversation messages if a `conversationId` query parameter is present.
-  - `POST`: Stores new messages in Firestore.
+### Sidebar Configuration Updates
+* **Sidebar Menu**: Modified [Sidebar.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/layout/Sidebar.tsx):
+  - Renamed "KB Search" to **"FAQ"** and updated the icon to `CircleHelp`.
+  - Removed **"UI Library"** from the navigation options.
+  - Added a **"Settings"** navigation link pointing to `/settings` using the `Settings` icon from `lucide-react`.
 
-### Chat Components Refactoring
-* **Composer**: Modified [ChatComposer.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatComposer.tsx) to submit messages using `fetch` POST requests to the `/api/conversations` backend route.
-* **History**: Modified [ConversationHistory.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationHistory.tsx) to load the initial list of conversations from `/api/conversations` GET requests.
+### Settings Layout Standardisation
+* **Settings Layout**: Updated [settings/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/settings/page.tsx) to replace the custom `SettingsSidebar` and `SettingsHeader` with standard layout components `<Sidebar />` and `<Header />`, aligning margins and wrapper layout definitions.
 
-### Header UI Customization
-* **Main Header**: Modified [Header.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/layout/Header.tsx) to remove the Bell button, substitute the user name/role with a clean **Admin** title, and replace the dynamic user avatar image with a placeholder User icon from `lucide-react`.
-* **FAQ Header**: Modified [FAQHeader.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/faq-management/FAQHeader.tsx) to apply identical adjustments.
+### FAQ Backend Integration (CRUD API)
+* **FAQ API Route**: Created [route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/faqs/route.ts) with CRUD capability:
+  - `GET`: Returns the list of all FAQs, or a single FAQ if an `id` query parameter is provided.
+  - `POST`: Stores a new FAQ article in Firestore.
+  - `PUT`: Updates an existing FAQ article.
+  - `DELETE`: Wipes an FAQ article from Firestore.
+* **Component Fetch Customization**:
+  - Refactored [FAQTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/faq-management/FAQTable.tsx) to fetch knowledge base documents using GET `/api/faqs`.
+  - Refactored [faq/new/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/faq/new/page.tsx) to send POST requests to `/api/faqs` upon creation.
+  - Refactored [faq/new/EditFAQClient.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/faq/new/EditFAQClient.tsx) to utilize GET, PUT, and DELETE methods to `/api/faqs`.

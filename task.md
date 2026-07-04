@@ -1,4 +1,4 @@
-# Task List - Conversations Sidebar Link and Backend Route
+# Task List - Navigation Links, Sidebar Customization, and backend APIs
 
 - [x] Add Conversations link in `src/components/layout/Sidebar.tsx`
   - [x] Add `MessageSquare` icon import.
@@ -12,4 +12,15 @@
 - [x] Header UI Adjustments
   - [x] Modify `src/components/layout/Header.tsx` to remove the notification bell, write "Admin" instead of the name and role, and show a blank profile avatar placeholder.
   - [x] Modify `src/components/faq-management/FAQHeader.tsx` to apply identical header cleanups (remove bell, change user details to "Admin", and show a blank avatar placeholder).
-- [x] Verify conversations integration works correctly.
+- [x] Sidebar Cleanups and Settings Integration
+  - [x] Remove the "New Broadcast" and "Add FAQ" buttons from the dashboard header in `src/app/dashboard/page.tsx`.
+  - [x] Rename "KB Search" to "FAQ" and change its icon to `CircleHelp` in the sidebar.
+  - [x] Remove the "UI Library" button from the standard sidebar menu.
+  - [x] Add a "Settings" button to the sidebar navigation menu pointing to `/settings`.
+  - [x] Standardize `/settings` layout in `src/app/settings/page.tsx` to render the standard `<Sidebar />` and `<Header />` layout components, ensuring consistent navigation options.
+- [x] FAQ Backend CRUD Integration
+  - [x] Create backend API route `/api/faqs` mapping GET, POST, PUT, and DELETE methods.
+  - [x] Refactor `FAQTable.tsx` to query list of FAQs via GET `/api/faqs`.
+  - [x] Refactor `faq/new/page.tsx` to create new FAQs via POST `/api/faqs`.
+  - [x] Refactor `faq/new/EditFAQClient.tsx` to retrieve, update, and delete FAQs using GET, PUT, and DELETE request methods to `/api/faqs`.
+- [x] Verify integration works correctly.

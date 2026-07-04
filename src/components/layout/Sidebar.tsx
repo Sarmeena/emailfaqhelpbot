@@ -13,6 +13,8 @@ import {
   Plus,
   Bot,
   MessageSquare,
+  CircleHelp,
+  Settings,
 } from "lucide-react";
 
 const menu = [
@@ -32,13 +34,8 @@ const menu = [
     href: "/conversation",
   },
   {
-    title: "UI Library",
-    icon: Bot,
-    href: "/ui-library",
-  },
-  {
-    title: "KB Search",
-    icon: Search,
+    title: "FAQ",
+    icon: CircleHelp,
     href: "/faqs",
   },
   {
@@ -50,6 +47,11 @@ const menu = [
     title: "Analytics",
     icon: BarChart3,
     href: "/analytics",
+  },
+  {
+    title: "Settings",
+    icon: Settings,
+    href: "/settings",
   },
 ];
 

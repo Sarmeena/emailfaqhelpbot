@@ -1,5 +1,5 @@
-import SettingsHeader from "../../components/settings/SettingsHeader";
-import SettingsSidebar from "../../components/settings/SettingsSidebar";
+import Header from "../../components/layout/Header";
+import Sidebar from "../../components/layout/Sidebar";
 import SettingsProfile from "../../components/settings/SettingsProfile";
 import SettingsFirebaseCard from "../../components/settings/SettingsFirebaseCard";
 import SettingsGemini from "../../components/settings/SettingsGemini";
@@ -15,37 +15,42 @@ import ProtectedRoute from "../../components/auth/ProtectedRoute";
 export default function SettingsPage() {
   return (
     <ProtectedRoute>
-    <>
-      <SettingsHeader />
-      <SettingsSidebar />
+      <div className="flex min-h-screen bg-gray-100">
+        {/* Sidebar */}
+        <Sidebar />
 
-      <main className="min-h-screen bg-surface pt-24 pb-12 md:ml-72">
-        <div className="mx-auto max-w-5xl px-margin-mobile md:px-margin-desktop">
-          <div className="space-y-6">
-            <SettingsProfile />
+        {/* Right Side */}
+        <div className="flex flex-1 flex-col md:ml-64">
+          {/* Header */}
+          <Header />
 
-            <SettingsFirebaseCard />
+          {/* Page */}
+          <main className="mx-auto w-full max-w-5xl px-6 pt-24 pb-12">
+            <div className="space-y-6">
+              <SettingsProfile />
 
-            <SettingsGemini />
+              <SettingsFirebaseCard />
 
-            <SettingsGmail />
+              <SettingsGemini />
 
-            <SettingsSMTP />
+              <SettingsGmail />
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <SettingsNotifications />
-              <SettingsAppearance />
+              <SettingsSMTP />
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <SettingsNotifications />
+                <SettingsAppearance />
+              </div>
+
+              <SettingsSecurity />
+
+              <SettingsLogout />
             </div>
-
-            <SettingsSecurity />
-
-            <SettingsLogout />
-          </div>
+          </main>
         </div>
-      </main>
+      </div>
 
       <SettingsBottomNav />
-    </>
     </ProtectedRoute>
   );
 }

@@ -11,12 +11,6 @@ import FAQMetadata from "../../../components/faq/FAQMetadata";
 import FAQDangerZone from "../../../components/faq/FAQDangerZone";
 
 
-import {
-    getFAQById,
-    updateFAQ,
-    deleteFAQ,
-} from "../../../services/firestore/faqs";
-
 export default function EditFAQClient() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -36,11 +30,16 @@ export default function EditFAQClient() {
             }
 
             try {
-                const faq = await getFAQById(id);
-
-                setQuestion(faq.question);
-                setAnswer(faq.answer);
-                setCategory(faq.category);
+                const res = await fetch(`/api/faqs?id=${id}`);
+                if (res.ok) {
+                    const json = await res.json();
+                    const faq = json.faq;
+                    if (faq) {
+                        setQuestion(faq.question);
+                        setAnswer(faq.answer);
+                        setCategory(faq.category);
+                    }
+                }
             } catch (error) {
                 console.error(error);
             } finally {
@@ -69,11 +68,20 @@ export default function EditFAQClient() {
 
         try {
             if (id) {
-                await updateFAQ(id, {
-                    question,
-                    answer,
-                    category,
+                const res = await fetch("/api/faqs", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        id,
+                        question,
+                        answer,
+                        category,
+                    }),
                 });
+
+                if (!res.ok) {
+                    throw new Error("Failed to save FAQ");
+                }
             }
 
             alert("FAQ saved successfully.");
@@ -97,7 +105,13 @@ export default function EditFAQClient() {
         }
 
         try {
-            await deleteFAQ(id);
+            const res = await fetch(`/api/faqs?id=${id}`, {
+                method: "DELETE",
+            });
+
+            if (!res.ok) {
+                throw new Error("Failed to delete FAQ");
+            }
 
             alert("FAQ deleted successfully.");
 

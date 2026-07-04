@@ -3,7 +3,7 @@
 import { Pencil, Eye, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getFAQs, FAQ } from "../../services/firestore/faqs";
+import { FAQ } from "../../services/firestore/faqs";
 
 import {
   categoryStyles,
@@ -72,8 +72,11 @@ export default function FAQTable({
   useEffect(() => {
     async function loadFAQs() {
       try {
-        const data = await getFAQs();
-        setFaqs(data);
+        const res = await fetch("/api/faqs");
+        if (res.ok) {
+          const json = await res.json();
+          setFaqs(json.faqs || []);
+        }
       } catch (error) {
         console.error(error);
       } finally {

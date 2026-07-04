@@ -39,16 +39,6 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex gap-3">
-              <button className="rounded-lg bg-blue-700 px-5 py-3 text-white">
-                New Broadcast
-              </button>
-
-              <button className="rounded-lg border px-5 py-3 text-blue-700">
-                Add FAQ
-              </button>
-            </div>
-
           </div>
 
           {/* Stats */}

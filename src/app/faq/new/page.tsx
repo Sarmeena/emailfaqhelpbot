@@ -9,8 +9,6 @@ import Sidebar from "../../../components/layout/Sidebar";
 import FAQContentForm from "../../../components/faq/FAQContentForm";
 import FAQCategorization from "../../../components/faq/FAQCategorization";
 
-import { addFAQ } from "../../../services/firestore/faqs";
-
 export default function NewFAQPage() {
   const router = useRouter();
 
@@ -47,17 +45,23 @@ export default function NewFAQPage() {
     }
 
     try {
-      await addFAQ(
-        question,
-        answer,
-        category,
-        {
+      const res = await fetch("/api/faqs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question,
+          answer,
+          category,
           source,
           fileName,
           fileSize,
           uploadedAt
-        }
-      );
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create FAQ");
+      }
 
       alert("FAQ created successfully.");
       router.push("/faqs");
