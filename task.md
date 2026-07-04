@@ -1,18 +1,12 @@
-# Task List - Navigation Links, UI Library, and Analytics Dashboard
+# Task List - Conversations Sidebar Link and Backend Route
 
-- [x] Dynamic Sidebar and Mobile Nav Routing
-  - [x] Modify `src/components/layout/Sidebar.tsx` to handle dynamic routing, highlight the active menu, and link "New Ticket" to `/requests/create`.
-  - [x] Modify `src/components/layout/MobileNav.tsx` to handle dynamic routing and highlight the active menu.
-- [x] Build Analytics Backend API Route
-  - [x] Create `src/app/api/analytics/route.ts` that compiles dashboard metrics from Firestore.
-- [x] Build Analytics Dashboard Page
-  - [x] Create `/analytics` page in `src/app/analytics/page.tsx` rendering layouts, charts, and metrics.
-- [x] Build UI Library Page
-  - [x] Create `/ui-library` page in `src/app/ui-library/page.tsx` showcasing app component patterns.
-- [x] Sidebar Link Standardization & Brand Routing
-  - [x] Wrapped Sidebar brand header ("HelpBot / AI Assistant") in Link pointing to `/dashboard`.
-  - [x] Standardized layouts by replacing `BroadcastSidebar` and `BroadcastHeader` with standard `Sidebar` and `Header` in all campaign/broadcast views.
-  - [x] Linked the bottom "Help" menu item in the sidebar to `/help`.
-  - [x] Created a dedicated `/help` route showcasing instructions, system guides, and troubleshoot helpers.
-  - [x] Render standard `<Sidebar />` on `/faqs`, `/faq/new` (Add FAQ), and `/faq` (Edit FAQ) so that the sidebar is visible and interactive on all KB/FAQ screens.
-- [x] Verify navigation and features.
+- [x] Add Conversations link in `src/components/layout/Sidebar.tsx`
+  - [x] Add `MessageSquare` icon import.
+  - [x] Add dynamic link in `menu` array pointing to `/conversation`.
+- [x] Create Conversations API endpoint in `src/app/api/conversations/route.ts`
+  - [x] Map `GET` method to return conversation list.
+  - [x] Map `POST` method to store agent message and return response.
+- [x] Connect components to new backend route
+  - [x] Refactor `ChatComposer.tsx` to send messages via POST to `/api/conversations`.
+  - [x] Refactor `ConversationHistory.tsx` to fetch initial lists from GET `/api/conversations`.
+- [x] Verify conversations integration works correctly.

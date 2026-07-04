@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 
-import {
-  getConversations,
-  Conversation,
-} from "../../../services/firestore/conversations";
-
-
+import { Conversation } from "../../../services/firestore/conversations";
 
 interface ConversationHistoryProps {
   selectedConversation: string;
@@ -20,26 +15,29 @@ export default function ConversationHistory({
   onSelectConversation,
 }: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-const [loading, setLoading] = useState(true);
-useEffect(() => {
-  async function loadConversations() {
-    try {
-      const data = await getConversations();
+  const [loading, setLoading] = useState(true);
 
-setConversations(data);
-
-if (data.length > 0) {
-  onSelectConversation(data[0].id!);
-}
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    async function loadConversations() {
+      try {
+        const res = await fetch("/api/conversations");
+        if (res.ok) {
+          const json = await res.json();
+          const data = json.conversations || [];
+          setConversations(data);
+          if (data.length > 0) {
+            onSelectConversation(data[0].id!);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
 
-  loadConversations();
-}, []);
+    loadConversations();
+  }, []);
 if (loading) {
   return (
     <aside className="hidden w-80 border-r bg-white lg:flex items-center justify-center">

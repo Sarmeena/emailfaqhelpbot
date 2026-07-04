@@ -12,6 +12,7 @@ import {
   LogOut,
   Plus,
   Bot,
+  MessageSquare,
 } from "lucide-react";
 
 const menu = [
@@ -24,6 +25,11 @@ const menu = [
     title: "Tickets",
     icon: Ticket,
     href: "/requests",
+  },
+  {
+    title: "Conversations",
+    icon: MessageSquare,
+    href: "/conversation",
   },
   {
     title: "UI Library",

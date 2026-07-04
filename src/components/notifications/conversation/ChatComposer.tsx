@@ -5,7 +5,6 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { sendMessage } from "../../../services/firestore/conversations";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 
@@ -112,12 +111,20 @@ export default function ChatComposer({
     try {
       setSending(true);
 
-      // Save inside local Firestore database messages
-      await sendMessage(
-        conversationId,
-        "agent",
-        message
-      );
+      // Save inside local Firestore database messages via backend API
+      const saveRes = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          sender: "agent",
+          message,
+        }),
+      });
+
+      if (!saveRes.ok) {
+        throw new Error("Failed to save message on server");
+      }
 
       // Send via Gmail API if flagged
       if (requestDetails?.source === "Gmail" && sendGmailEmail) {
