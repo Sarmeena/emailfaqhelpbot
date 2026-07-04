@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       connected: gmailConfig?.connected || false,
       isSimulated: gmailConfig?.isSimulated || false,
       watchExpiration: gmailConfig?.watchExpiration || null,
-      email: gmailConfig?.email || "Not Connected"
+      email: gmailConfig?.emailAddress || "Not Connected"
     };
 
     // 5. Generate recent activity timeline (last 5 requests created)
