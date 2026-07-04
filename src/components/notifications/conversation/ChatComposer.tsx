@@ -28,6 +28,7 @@ export default function ChatComposer({
     customerEmail: string;
     subject: string;
     gmailMessageId?: string;
+    gmailThreadId?: string;
     source?: string;
   } | null>(null);
   const [sendGmailEmail, setSendGmailEmail] = useState(true);
@@ -47,6 +48,7 @@ export default function ChatComposer({
             customerEmail: data.customerEmail,
             subject: data.subject,
             gmailMessageId: data.gmailMessageId,
+            gmailThreadId: data.gmailThreadId,
             source: data.source,
           });
           setSendGmailEmail(data.source === "Gmail");
