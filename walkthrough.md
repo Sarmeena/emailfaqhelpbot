@@ -96,15 +96,12 @@ Google Cloud requires webhook endpoints to be publicly reachable via HTTPS.
    - Endpoint URL: `https://your-public-url.com/api/gmail/webhook` (replace with your Vercel or Ngrok domain).
 
 ### 3. Register Gmail watch Subscriptions
-When Gmail is connected in Settings, register the webhook subscription by sending a POST request to `/api/gmail/watch`:
-- **Method**: `POST`
-- **URL**: `http://localhost:3000/api/gmail/watch`
-- **Headers**: `Content-Type: application/json`
-- **Body**:
-  ```json
-  {
-    "topicName": "projects/YOUR_GOOGLE_PROJECT_ID/topics/gmail-notifications"
-  }
-  ```
+You can now register your watch webhook subscription directly from the application's settings:
+1. Navigate to **Settings** (`/settings`).
+2. Under **Gmail API Integration**, make sure you are connected in live mode.
+3. In the new **Gmail Watch Webhook Setup** section, copy the provided Webhook Endpoint URL and configure it in your Google Cloud Pub/Sub push subscription.
+4. Input your Google Cloud Pub/Sub Topic Name (e.g., `projects/YOUR_GOOGLE_PROJECT_ID/topics/gmail-notifications`) and click **Register Watch Webhook**.
+5. Once registered successfully, the settings UI will show the expiration date and time of the active Gmail watch (which lasts 7 days and can be renewed here).
+
 Gmail will now push webhook alerts to your `/api/gmail/webhook` route instantly whenever a new customer email lands in your inbox, which auto-replies and populates Firestore in real time.
 

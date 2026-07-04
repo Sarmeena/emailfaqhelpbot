@@ -10,6 +10,8 @@ export interface GmailConfig {
   connected: boolean;
   emailAddress: string;
   isSimulated: boolean;
+  pubSubTopic?: string;
+  watchExpiration?: number;
 }
 
 const CONFIG_DOC_PATH = ["settings", "gmail"] as const;
@@ -42,6 +44,8 @@ export async function saveGmailConfig(config: Partial<GmailConfig>): Promise<voi
       connected: false,
       emailAddress: "",
       isSimulated: false,
+      pubSubTopic: "",
+      watchExpiration: 0,
       ...current,
       ...config,
     };
@@ -65,6 +69,8 @@ export async function disconnectGmail(): Promise<void> {
       connected: false,
       emailAddress: "",
       isSimulated: false,
+      pubSubTopic: "",
+      watchExpiration: 0,
     });
   } catch (error) {
     console.error("Error disconnecting Gmail:", error);

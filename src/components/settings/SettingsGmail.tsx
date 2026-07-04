@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, CheckCircle2, AlertCircle, RefreshCw, LogOut, Key } from "lucide-react";
+import { Mail, CheckCircle2, AlertCircle, RefreshCw, LogOut, Key, Radio } from "lucide-react";
 import { getGmailConfig, saveGmailConfig, disconnectGmail, GmailConfig } from "../../services/firestore/gmailConfig";
 
 export default function SettingsGmail() {
   const [config, setConfig] = useState<GmailConfig | null>(null);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  const [pubSubTopic, setPubSubTopic] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [watchLoading, setWatchLoading] = useState(false);
 
   useEffect(() => {
     async function loadConfig() {
@@ -19,6 +21,7 @@ export default function SettingsGmail() {
           setConfig(data);
           setClientId(data.clientId || "");
           setClientSecret(data.clientSecret || "");
+          setPubSubTopic(data.pubSubTopic || "");
         }
       } catch (error) {
         console.error(error);
@@ -61,6 +64,14 @@ export default function SettingsGmail() {
     }
     setActionLoading(true);
     try {
+      // Save credentials first client-side (using authenticated browser context)
+      await saveGmailConfig({
+        clientId,
+        clientSecret,
+        connected: false,
+        isSimulated: false,
+      });
+
       const res = await fetch("/api/gmail/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,12 +100,42 @@ export default function SettingsGmail() {
       setConfig(null);
       setClientId("");
       setClientSecret("");
+      setPubSubTopic("");
       alert("Account disconnected.");
     } catch (err) {
       console.error(err);
       alert("Failed to disconnect.");
     } finally {
       setActionLoading(false);
+    }
+  }
+
+  async function handleRegisterWatch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pubSubTopic.trim()) {
+      alert("Please enter a Google Cloud Pub/Sub Topic Name.");
+      return;
+    }
+    setWatchLoading(true);
+    try {
+      const res = await fetch("/api/gmail/watch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topicName: pubSubTopic }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const fresh = await getGmailConfig();
+        setConfig(fresh);
+        alert("Gmail Watch registered successfully!");
+      } else {
+        alert(data.error || "Failed to register Gmail Watch.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error registering Gmail Watch.");
+    } finally {
+      setWatchLoading(false);
     }
   }
 
@@ -167,6 +208,77 @@ export default function SettingsGmail() {
               </div>
             )}
           </div>
+
+          {!isSimulated && (
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg bg-indigo-50 p-1.5 text-indigo-650">
+                  <Radio className="h-4.5 w-4.5" />
+                </div>
+                <h3 className="text-title-md font-semibold text-slate-800">
+                  Gmail Watch Webhook Setup
+                </h3>
+              </div>
+
+              <div className="space-y-3 text-xs text-slate-500">
+                <p>
+                  To sync emails in real-time, configure a Google Cloud Pub/Sub Topic and push subscription.
+                </p>
+                <div className="bg-white p-3 rounded border border-slate-200 space-y-1">
+                  <span className="font-semibold block text-slate-700">Your Webhook Endpoint URL:</span>
+                  <code className="text-blue-700 font-mono select-all break-all block p-1 bg-slate-50 border border-slate-100 rounded text-[11px]">
+                    {typeof window !== "undefined" ? `${window.location.origin}/api/gmail/webhook` : "/api/gmail/webhook"}
+                  </code>
+                  <p className="text-[10px] text-slate-400">
+                    Configure this URL as the <strong>Delivery endpoint</strong> for your Pub/Sub Push Subscription.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleRegisterWatch} className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-650">
+                    Google Cloud Pub/Sub Topic Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="projects/YOUR_PROJECT_ID/topics/YOUR_TOPIC_NAME"
+                    value={pubSubTopic}
+                    onChange={(e) => setPubSubTopic(e.target.value)}
+                    disabled={watchLoading}
+                    className="w-full rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                  <div className="text-xs">
+                    {config?.watchExpiration ? (
+                      <span className="text-green-600 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Active Watch Expires: {new Date(config.watchExpiration).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic">No active watch subscription registered.</span>
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={watchLoading}
+                    className="inline-flex justify-center items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {watchLoading ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        Registering...
+                      </>
+                    ) : (
+                      "Register Watch Webhook"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           <div className="flex justify-end">
             <button

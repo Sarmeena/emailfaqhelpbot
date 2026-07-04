@@ -5,6 +5,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, clientId, clientSecret } = body;
+    console.log("CLIENT ID =", clientId);
+    console.log("CLIENT SECRET =", clientSecret);
 
     if (action === "simulate") {
       await saveGmailConfig({
@@ -33,12 +35,21 @@ export async function POST(request: NextRequest) {
       }
 
       // Save credentials first
-      await saveGmailConfig({
-        clientId,
-        clientSecret,
-        connected: false,
-        isSimulated: false,
-      });
+      try {
+        await saveGmailConfig({
+          clientId,
+          clientSecret,
+          connected: false,
+          isSimulated: false,
+        });
+        console.log("saveGmailConfig in auth/route completed successfully");
+      } catch (err) {
+        console.error("saveGmailConfig in auth/route failed:", err);
+        return NextResponse.json(
+          { success: false, error: `Firestore write failed: ${err instanceof Error ? err.message : String(err)}` },
+          { status: 550 }
+        );
+      }
 
       // Construct Google OAuth URL
       const redirectUri = "http://localhost:3000/api/gmail/callback";
@@ -47,13 +58,16 @@ export async function POST(request: NextRequest) {
         "https://www.googleapis.com/auth/gmail.send",
       ].join(" ");
 
+      const stateObj = { clientId, clientSecret };
+      const state = Buffer.from(JSON.stringify(stateObj)).toString("base64");
+
       const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
         clientId
       )}&redirect_uri=${encodeURIComponent(
         redirectUri
       )}&response_type=code&scope=${encodeURIComponent(
         scopes
-      )}&access_type=offline&prompt=consent`;
+      )}&access_type=offline&prompt=consent&state=${state}`;
 
       return NextResponse.json({
         success: true,

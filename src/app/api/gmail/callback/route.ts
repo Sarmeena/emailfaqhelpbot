@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
+  const state = searchParams.get("state");
 
   if (error) {
     console.error("OAuth error returned from Google:", error);
@@ -16,8 +17,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    let clientId = "";
+    let clientSecret = "";
+
+    if (state) {
+      try {
+        const decodedState = JSON.parse(Buffer.from(state, "base64").toString("utf-8"));
+        clientId = decodedState.clientId;
+        clientSecret = decodedState.clientSecret;
+      } catch (e) {
+        console.error("Failed to decode state:", e);
+      }
+    }
+
     const config = await getGmailConfig();
-    if (!config || !config.clientId || !config.clientSecret) {
+    const finalClientId = clientId || config?.clientId;
+    const finalClientSecret = clientSecret || config?.clientSecret;
+
+    if (!finalClientId || !finalClientSecret) {
       throw new Error("Client credentials not configured or missing in database.");
     }
 
@@ -29,8 +46,8 @@ export async function GET(request: NextRequest) {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code,
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
+        client_id: finalClientId,
+        client_secret: finalClientSecret,
         redirect_uri: redirectUri,
         grant_type: "authorization_code",
       }),
@@ -58,11 +75,14 @@ export async function GET(request: NextRequest) {
     }
 
     await saveGmailConfig({
+      clientId: finalClientId,
+      clientSecret: finalClientSecret,
       accessToken: access_token,
-      refreshToken: refresh_token || config.refreshToken,
+      refreshToken: refresh_token || config?.refreshToken || "",
       expiryDate: Date.now() + expires_in * 1000,
       emailAddress,
       connected: true,
+      isSimulated: false,
     });
 
     return NextResponse.redirect("http://localhost:3000/settings?gmail_success=true");
