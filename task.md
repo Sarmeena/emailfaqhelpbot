@@ -37,4 +37,8 @@
   - [x] Maintained the "New Request" button in the top right of the requests header ([RequestHeader.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestHeader.tsx)).
   - [x] Modified [ChatWindow.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatWindow.tsx) to align received messages (anything not from `"agent"` or `"AI Assistant"`) to the left, and sent responses (from `"agent"` or `"AI Assistant"`) to the right.
   - [x] Configured webhook auto-reply to default to `true` and updated `generateReply.ts` to always query Gemini to generate acknowledgment/escalation emails if no FAQs match, guaranteeing AI auto-reply is fully enabled for all incoming messages.
+- [x] Requests Table Responsiveness & Automated Gmail Import
+  - [x] Added `overflow-x-auto` wrapper and `min-w-[1000px]` constraints to [RequestsTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestsTable.tsx) to enable horizontal scrolling and avoid hidden Action buttons.
+  - [x] Removed tabs and integrated background auto-import triggers in [requests/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx).
+  - [x] Implemented automatic background import mechanism in [messages/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/messages/route.ts) that checks and imports any unread messages, assigns request ID, stores in conversations and messages Firestore, and automatically triggers Gemini in-thread email reply.
 - [x] Verify integration works correctly.

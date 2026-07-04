@@ -1,6 +1,6 @@
 # Walkthrough - Navigation Links, Sidebar Customization, and backend APIs
 
-We have completed the dashboard cleanups, sidebar menu customization, unified settings layout routing, implemented the backend CRUD endpoint for FAQ management, integrated Gemini automation features, simplified ticket creation entry points, fixed message alignments, and enabled AI auto-replies across all incoming support inquiries.
+We have completed the dashboard cleanups, sidebar menu customization, unified settings layout routing, implemented the backend CRUD endpoint for FAQ management, integrated Gemini automation features, simplified ticket creation entry points, fixed message alignments, enabled AI auto-replies across all incoming support inquiries, added horizontal table scroll, and automated Gmail message syncing directly in the main inbox.
 
 ## Changes Made
 
@@ -48,3 +48,9 @@ We have completed the dashboard cleanups, sidebar menu customization, unified se
 * **Auto-Reply Default**:
   - Configured `geminiConfig` to default to `true` for auto-reply automation.
   - Refactored [generateReply.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/ai/generateReply.ts) to query Gemini and generate dynamic acknowledgment emails even when there are no relevant FAQs, guaranteeing that an automated AI reply is sent for all incoming emails.
+
+### Horizontal Table Scrolling & Gmail Background Sync
+* **Horizontal Scroll**: Added `overflow-x-auto` to the outer div wrapper in [RequestsTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestsTable.tsx) and set the `table` element's minimum width to `min-w-[1000px]`, enabling sideways scroll and ensuring that the actions dropdown/buttons are accessible and visible.
+* **No Import Required & Automatic Sync**:
+  - Removed the tabs layout in [requests/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx) and added a background mount call to `/api/gmail/messages`.
+  - Added background auto-import triggers inside [messages/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/messages/route.ts) GET query: whenever emails are loaded, the system checks for any unimported emails, assigns a `requestId`, imports them to Firestore requests, creates their conversations and AI messages, and automatically sends the Gemini AI response to that thread.

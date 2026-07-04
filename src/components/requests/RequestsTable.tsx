@@ -112,9 +112,9 @@ export default function RequestsTable() {
 
   return (
     <>
-      <div className="hidden overflow-hidden rounded-2xl border bg-white shadow-sm md:block">
+      <div className="hidden overflow-x-auto rounded-2xl border bg-white shadow-sm md:block">
         {/* Thread Summary Bar */}
-        <div className="flex items-center justify-between border-b bg-gray-50 px-6 py-3">
+        <div className="flex items-center justify-between border-b bg-gray-50 px-6 py-3 min-w-[1000px]">
           <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
             <GitBranch size={16} className="text-blue-600" />
             <span>{threadGroups.length} Email Thread{threadGroups.length !== 1 ? "s" : ""}</span>
@@ -124,7 +124,7 @@ export default function RequestsTable() {
           <span className="text-xs text-gray-400">Click thread row to expand</span>
         </div>
 
-        <table className="w-full">
+        <table className="w-full min-w-[1000px]">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Thread</th>
