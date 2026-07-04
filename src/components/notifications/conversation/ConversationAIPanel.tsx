@@ -139,7 +139,7 @@ export default function ConversationAIPanel({
   }
 
   return (
-    <aside className="hidden w-96 flex-col border-l bg-gray-50 xl:flex">
+    <aside className="hidden w-96 shrink-0 flex-col border-l bg-gray-50 xl:flex">
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-white p-4 shrink-0">
         <div className="flex items-center gap-2">
@@ -175,7 +175,7 @@ export default function ConversationAIPanel({
                 Analyzing customer message and generating suggestions...
               </div>
             ) : (
-              <div className="max-h-60 overflow-y-auto rounded-lg bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-line border border-gray-150 font-medium">
+              <div className="max-h-60 overflow-y-auto rounded-lg bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-line border border-gray-150 font-medium break-words max-w-full overflow-hidden">
                 {suggestion || "Type a customer message to generate response suggestions."}
               </div>
             )}

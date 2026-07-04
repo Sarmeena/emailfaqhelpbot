@@ -1,6 +1,6 @@
 # Walkthrough - Navigation Links, Sidebar Customization, and backend APIs
 
-We have completed the dashboard cleanups, sidebar menu customization, unified settings layout routing, implemented the backend CRUD endpoint for FAQ management, integrated Gemini automation features, simplified ticket creation entry points, fixed message alignments, enabled AI auto-replies across all incoming support inquiries, added horizontal table scroll, and automated Gmail message syncing directly in the main inbox.
+We have completed the dashboard cleanups, sidebar menu customization, unified settings layout routing, implemented the backend CRUD endpoint for FAQ management, integrated Gemini automation features, simplified ticket creation entry points, fixed message alignments, enabled AI auto-replies across all incoming support inquiries, added horizontal table scroll, automated Gmail message syncing directly in the main inbox, and configured fixed-width layouts with flex size protections and text wrapping.
 
 ## Changes Made
 
@@ -40,7 +40,7 @@ We have completed the dashboard cleanups, sidebar menu customization, unified se
 
 ### Ticket Creation & Chat Layout Cleaning
 * **Ticket Buttons**:
-  - Removed "New Ticket" button from [Sidebar.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/layout/Sidebar.tsx).
+  - Removed "New Ticket" button from [Sidebar.tsx](file:///c:/Windows%2011/Documents/email-faq-help-bot/src/components/layout/Sidebar.tsx).
   - Removed the floating `<RequestFloatingButton />` from the requests list page ([requests/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx)).
   - Kept the "New Request" button inside [RequestHeader.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestHeader.tsx) as the single clean creation entry point.
 * **Message Alignment**:
@@ -53,4 +53,12 @@ We have completed the dashboard cleanups, sidebar menu customization, unified se
 * **Horizontal Scroll**: Added `overflow-x-auto` to the outer div wrapper in [RequestsTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestsTable.tsx) and set the `table` element's minimum width to `min-w-[1000px]`, enabling sideways scroll and ensuring that the actions dropdown/buttons are accessible and visible.
 * **No Import Required & Automatic Sync**:
   - Removed the tabs layout in [requests/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx) and added a background mount call to `/api/gmail/messages`.
-  - Added background auto-import triggers inside [messages/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/messages/route.ts) GET query: whenever emails are loaded, the system checks for any unimported emails, assigns a `requestId`, imports them to Firestore requests, creates their conversations and AI messages, and automatically sends the Gemini AI response to that thread.
+  - Added background auto-import triggers inside [messages/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/messages/route.ts) GET query: whenever emails are loaded, the system checks for any unimported emails, assigns a `requestId`, imports them to Firestore requests, creates them as tickets, and automatically sends the Gemini AI response back to that thread.
+
+### Fixed-Width Flex Layouts & CSS Word Wrapping
+* **Sidebar Layout Sizing**: Added `shrink-0` to the `<Sidebar />` aside component to maintain a fixed `w-64` width.
+* **Conversation UI Fixes**:
+  - Added `shrink-0` to the `<ConversationHistory />` aside tag to lock it at `w-80`.
+  - Added `shrink-0` to the `<ConversationAIPanel />` aside tag to lock it at `w-96`.
+  - Added `min-w-0` to the central conversation `<section>` element, enabling flexbox item content scaling.
+  - Added CSS classes `break-words`, `max-w-full`, and `overflow-hidden` to message boxes in [ChatWindow.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatWindow.tsx) and [ConversationAIPanel.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationAIPanel.tsx) to prevent layout distortion from long URLs or non-breaking text patterns.

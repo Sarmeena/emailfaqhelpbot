@@ -40,5 +40,10 @@
 - [x] Requests Table Responsiveness & Automated Gmail Import
   - [x] Added `overflow-x-auto` wrapper and `min-w-[1000px]` constraints to [RequestsTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestsTable.tsx) to enable horizontal scrolling and avoid hidden Action buttons.
   - [x] Removed tabs and integrated background auto-import triggers in [requests/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx).
-  - [x] Implemented automatic background import mechanism in [messages/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/messages/route.ts) that checks and imports any unread messages, assigns request ID, stores in conversations and messages Firestore, and automatically triggers Gemini in-thread email reply.
+  - [x] Implemented automatic background import mechanism in [messages/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/messages/route.ts) GET query: whenever emails are loaded, the system checks and imports any unread messages, assigns request ID, stores in conversations and messages Firestore, and automatically triggers Gemini in-thread email reply.
+- [x] Fixed-Width Layouts & Overflow Wrapping Protection
+  - [x] Added `shrink-0` to the main navigation `<Sidebar />` aside element.
+  - [x] Added `shrink-0` to `<ConversationHistory />` and `<ConversationAIPanel />` to keep sidebar panel widths static regardless of text contents.
+  - [x] Added `min-w-0` to the central chat area in [conversation/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/conversation/page.tsx) to enforce content boundaries.
+  - [x] Added CSS `break-words`, `max-w-full`, and `overflow-hidden` classes to text bubbles inside [ChatWindow.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatWindow.tsx) and [ConversationAIPanel.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationAIPanel.tsx) to prevent horizontal layout breakages from long URLs or continuous text.
 - [x] Verify integration works correctly.

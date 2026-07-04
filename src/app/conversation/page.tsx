@@ -36,7 +36,7 @@ export default function ConversationPage() {
     setComposerMessage("");
   }}
 />
-          <section className="flex flex-1 flex-col bg-white">
+          <section className="flex flex-1 flex-col bg-white min-w-0">
             <ChatWindow
   conversationId={selectedConversation}
   onLatestCustomerMessage={setLatestCustomerMessage}

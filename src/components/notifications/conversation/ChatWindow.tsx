@@ -103,7 +103,7 @@ export default function ChatWindow({
                 className="mt-1 h-8 w-8 rounded-full"
               />
 
-              <div className="rounded-2xl rounded-tl-none border bg-gray-100 p-4 shadow-sm">
+              <div className="rounded-2xl rounded-tl-none border bg-gray-100 p-4 shadow-sm break-words max-w-full overflow-hidden">
                 <p className="whitespace-pre-wrap text-sm text-gray-800 font-medium">
                   {msg.message}
                 </p>
@@ -125,7 +125,7 @@ export default function ChatWindow({
                 {msg.sender === "AI Assistant" ? "🤖" : "AG"}
               </div>
 
-              <div className="rounded-2xl rounded-tr-none bg-blue-700 p-4 text-white shadow-md">
+              <div className="rounded-2xl rounded-tr-none bg-blue-700 p-4 text-white shadow-md break-words max-w-full overflow-hidden">
                 <p className="whitespace-pre-wrap text-sm font-medium">
                   {msg.message}
                 </p>

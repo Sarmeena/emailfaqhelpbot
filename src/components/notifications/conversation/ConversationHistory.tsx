@@ -40,13 +40,13 @@ export default function ConversationHistory({
   }, []);
 if (loading) {
   return (
-    <aside className="hidden w-80 border-r bg-white lg:flex items-center justify-center">
+    <aside className="hidden w-80 shrink-0 border-r bg-white lg:flex items-center justify-center">
       Loading conversations...
     </aside>
   );
 }
   return (
-    <aside className="hidden w-80 flex-col overflow-y-auto border-r bg-white lg:flex">
+    <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-r bg-white lg:flex">
       {/* Search */}
       <div className="border-b p-4">
         <div className="relative">

@@ -69,7 +69,7 @@ export default function Sidebar() {
 };
   return (
       <aside
-  className="fixed left-0 top-0 hidden h-screen w-64 flex-col border-r border-gray-200 bg-white shadow-sm md:flex"
+  className="fixed left-0 top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white shadow-sm md:flex"
 >      
       <Link href="/dashboard" className="flex items-center gap-sm px-base py-md hover:opacity-85 transition cursor-pointer">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-container">
