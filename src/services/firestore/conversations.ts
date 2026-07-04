@@ -22,6 +22,7 @@ export interface Conversation {
   subject: string;
   status: string;
   lastMessage: string;
+  updatedAt?: any;
 }
 
 export interface Message {

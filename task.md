@@ -85,4 +85,6 @@
   - [x] Fixed client finder block inside `ChatWindow.tsx` to detect incoming emails correctly.
 - [x] Firebase Module Factory Resolution (Next.js Turbopack)
   - [x] Prepend `"use client";` to the auth service utility module [auth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/auth/auth.ts) to force Next.js Turbopack compiler to isolate imports from `@firebase/auth`/`firebase/auth` and resolve module factory linkage errors.
+- [x] Resolved Conversation Type compilation bug
+  - [x] Added `updatedAt` optional parameter definition inside the `Conversation` interface in [conversations.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/conversations.ts#L18) to fix TypeScript static type compilation check errors on build scripts.
 - [x] Verify integration works correctly.

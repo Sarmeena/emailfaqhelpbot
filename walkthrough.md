@@ -1,6 +1,6 @@
 # Walkthrough - Navigation Links, Sidebar Customization, and backend APIs
 
-We have completed the dashboard cleanups, sidebar menu customization, unified settings layout routing, implemented the backend CRUD endpoint for FAQ management, integrated Gemini automation features, simplified ticket creation entry points, fixed message alignments, enabled AI auto-replies across all incoming support inquiries, added horizontal table scroll, automated Gmail message syncing directly in the main inbox, configured fixed-width layouts with flex size protections and text wrapping, integrated Gemini copywriter drafting inside broadcasts, enabled live campaign metrics, created an FAQ view portal, established context-specific portal routing paths, refactored settings configurations, enabled password updates, enabled dynamic dashboard metrics, enabled text formatting tools, synchronized conversations and requests ticket statuses, enabled conversation history sorting, added message time tags, and resolved Turbopack Firebase module factory bundling issues.
+We have completed the dashboard cleanups, sidebar menu customization, unified settings layout routing, implemented the backend CRUD endpoint for FAQ management, integrated Gemini automation features, simplified ticket creation entry points, fixed message alignments, enabled AI auto-replies across all incoming support inquiries, added horizontal table scroll, automated Gmail message syncing directly in the main inbox, configured fixed-width layouts with flex size protections and text wrapping, integrated Gemini copywriter drafting inside broadcasts, enabled live campaign metrics, created an FAQ view portal, established context-specific portal routing paths, refactored settings configurations, enabled password updates, enabled dynamic dashboard metrics, enabled text formatting tools, synchronized conversations and requests ticket statuses, enabled conversation history sorting, added message time tags, resolved Turbopack Firebase module factory bundling issues, and fixed TypeScript compilation errors.
 
 ## Changes Made
 
@@ -114,3 +114,6 @@ We have completed the dashboard cleanups, sidebar menu customization, unified se
 
 ### Firebase Module Factory Linkage Fix
 * **Client Isolation**: Added the `"use client";` directive at the top of [auth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/auth/auth.ts) to isolate Firebase Auth client exports like `updatePassword` and avoid compilation errors during SSR/Turbopack bundling evaluation.
+
+### TypeScript Compilation Fix
+* **Conversation Interface**: Added the optional parameter `updatedAt?: any;` to the `Conversation` interface in [conversations.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/conversations.ts#L25) to satisfy the type compiler.
