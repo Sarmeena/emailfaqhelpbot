@@ -12,16 +12,33 @@ interface ChatComposerProps {
   conversationId: string;
   customerMessage: string;
   onMessageSent?: () => void;
+  messageValue?: string;
+  onMessageValueChange?: (val: string) => void;
 }
 
 export default function ChatComposer({
   conversationId,
   customerMessage,
   onMessageSent,
+  messageValue,
+  onMessageValueChange,
 }: ChatComposerProps) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    if (messageValue !== undefined) {
+      setMessage(messageValue);
+    }
+  }, [messageValue]);
+
+  const handleMessageChange = (val: string) => {
+    setMessage(val);
+    if (onMessageValueChange) {
+      onMessageValueChange(val);
+    }
+  };
 
   const [requestDetails, setRequestDetails] = useState<{
     customerEmail: string;
@@ -171,7 +188,7 @@ export default function ChatComposer({
           <textarea
             rows={1}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => handleMessageChange(e.target.value)}
             placeholder="Type your response..."
             className="max-h-32 min-h-11 flex-1 resize-none bg-transparent py-2 text-sm outline-none"
           />

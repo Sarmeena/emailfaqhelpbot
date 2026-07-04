@@ -23,4 +23,12 @@
   - [x] Refactor `FAQTable.tsx` to query list of FAQs via GET `/api/faqs`.
   - [x] Refactor `faq/new/page.tsx` to create new FAQs via POST `/api/faqs`.
   - [x] Refactor `faq/new/EditFAQClient.tsx` to retrieve, update, and delete FAQs using GET, PUT, and DELETE request methods to `/api/faqs`.
+- [x] Gemini Integration Enhancements & Settings
+  - [x] Created `geminiConfig` Firestore service to read/write custom Gemini models, temperatures, auto-reply, and auto-FAQ parameters.
+  - [x] Created App Router API route `/api/settings/gemini` mapping GET and POST requests.
+  - [x] Upgraded `SettingsGemini.tsx` card component to load and save API Key, Model Selection, response temperature slider, and automated auto-reply and auto-FAQ toggles.
+  - [x] Modified Gmail Webhook route (`src/app/api/gmail/webhook/route.ts`) to fetch Gemini settings and conditionally run the in-thread reply step only if `autoReplyEnabled` is active.
+  - [x] Refactored `generateReply.ts` to dynamically use the configured Gemini model, temperature, and API key from Firestore.
+  - [x] Created suggestion endpoint `/api/ai/suggest` and auto-FAQ generator endpoint `/api/ai/generate-faq`.
+  - [x] Replaced mock structures in `ConversationAIPanel.tsx` with live hooks that retrieve Gemini suggestions and auto-draft FAQs based on live conversations, with an option to write straight to the database Knowledge Base.
 - [x] Verify integration works correctly.

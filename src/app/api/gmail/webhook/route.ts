@@ -5,6 +5,7 @@ import { db } from "../../../../lib/firebase";
 import { generateRequestId, deriveThreadId } from "../../../../services/firestore/requests";
 import { searchFAQs } from "../../../../services/firestore/faqs";
 import { generateReply } from "../../../../services/ai/generateReply";
+import { getGeminiConfig } from "../../../../services/firestore/geminiConfig";
 
 export async function POST(request: NextRequest) {
   try {
@@ -168,41 +169,49 @@ export async function POST(request: NextRequest) {
     // Extract original Message-ID from headers to reply correctly
     const messageIdHeader = headers.find((h: any) => h.name.toLowerCase() === "message-id")?.value || msgId;
 
-    // Send the auto reply email back via Gmail API (In-Thread)
-    const emailSubject = subject.toLowerCase().startsWith("re:") ? subject : `Re: ${subject}`;
-    const emailRaw = [
-      `To: ${fromEmail}`,
-      `Subject: ${emailSubject}`,
-      `Content-Type: text/plain; charset=UTF-8`,
-      `MIME-Version: 1.0`,
-      `In-Reply-To: ${messageIdHeader}`,
-      `References: ${messageIdHeader}`,
-      "",
-      reply,
-    ].join("\r\n");
+    const geminiConfig = await getGeminiConfig();
+    const shouldSendAutoReply = geminiConfig?.autoReplyEnabled ?? false;
 
-    const base64Encoded = Buffer.from(emailRaw)
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
+    if (shouldSendAutoReply) {
+      // Send the auto reply email back via Gmail API (In-Thread)
+      const emailSubject = subject.toLowerCase().startsWith("re:") ? subject : `Re: ${subject}`;
+      const emailRaw = [
+        `To: ${fromEmail}`,
+        `Subject: ${emailSubject}`,
+        `Content-Type: text/plain; charset=UTF-8`,
+        `MIME-Version: 1.0`,
+        `In-Reply-To: ${messageIdHeader}`,
+        `References: ${messageIdHeader}`,
+        "",
+        reply,
+      ].join("\r\n");
 
-    const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ 
-        raw: base64Encoded,
-        threadId: detail.threadId || msgId
-      }),
-    });
+      const base64Encoded = Buffer.from(emailRaw)
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
 
-    if (!sendRes.ok) {
-      const errorText = await sendRes.text();
-      console.error("[REALTIME BOT RESPONSE FAILED] Gmail API send failed:", errorText);
-      throw new Error(`Gmail API send failed: ${errorText}`);
+      const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          raw: base64Encoded,
+          threadId: detail.threadId || msgId
+        }),
+      });
+
+      if (!sendRes.ok) {
+        const errorText = await sendRes.text();
+        console.error("[REALTIME BOT RESPONSE FAILED] Gmail API send failed:", errorText);
+        throw new Error(`Gmail API send failed: ${errorText}`);
+      }
+      console.log(`[REALTIME BOT RESPONSE SENT] Auto-responded to message ${msgId}.`);
+    } else {
+      console.log(`[REALTIME BOT AUTOMATION SKIPPED] Auto-reply is disabled in settings.`);
     }
 
     // Mark message as read in Gmail (remove UNREAD label)

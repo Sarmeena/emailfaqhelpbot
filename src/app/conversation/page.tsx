@@ -17,6 +17,8 @@ export default function ConversationPage() {
   const [latestCustomerMessage, setLatestCustomerMessage] =
   useState("");
   const [refresh, setRefresh] = useState(0);
+  const [composerMessage, setComposerMessage] = useState("");
+
   return (
     <ProtectedRoute>
     <>
@@ -29,7 +31,10 @@ export default function ConversationPage() {
         <div className="flex h-[calc(100vh-130px)] overflow-hidden">
           <ConversationHistory
   selectedConversation={selectedConversation}
-  onSelectConversation={setSelectedConversation}
+  onSelectConversation={(id) => {
+    setSelectedConversation(id);
+    setComposerMessage("");
+  }}
 />
           <section className="flex flex-1 flex-col bg-white">
             <ChatWindow
@@ -40,10 +45,16 @@ export default function ConversationPage() {
   conversationId={selectedConversation}
   customerMessage={latestCustomerMessage}
   onMessageSent={() => setRefresh((prev) => prev + 1)}
+  messageValue={composerMessage}
+  onMessageValueChange={setComposerMessage}
 />
           </section>
 
-          <ConversationAIPanel />
+          <ConversationAIPanel
+            conversationId={selectedConversation}
+            customerMessage={latestCustomerMessage}
+            onInsertSuggestedResponse={setComposerMessage}
+          />
         </div>
 
         <MobileConversationNav />
