@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileText, Upload, RefreshCw, CheckCircle, Info } from "lucide-react";
 
 import EditFAQHeader from "../../../components/faq/EditFAQHeader";
-import EditFAQSidebar from "../../../components/faq/EditFAQSidebar";
+import Sidebar from "../../../components/layout/Sidebar";
 import FAQContentForm from "../../../components/faq/FAQContentForm";
 import FAQCategorization from "../../../components/faq/FAQCategorization";
 
@@ -122,10 +122,10 @@ export default function NewFAQPage() {
         onCancel={handleCancel}
       />
 
-      <EditFAQSidebar />
+      <Sidebar />
 
       <main
-        className="rounded-2xl border border-gray-200 bg-white p-10 shadow-sm"
+        className="rounded-2xl border border-gray-200 bg-white p-10 shadow-sm pt-20"
         style={{ marginLeft: "256px" }}
       >
         <div className="mx-auto max-w-6xl space-y-10">

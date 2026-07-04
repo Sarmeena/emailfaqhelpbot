@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import EditFAQHeader from "../../../components/faq/EditFAQHeader";
-import EditFAQSidebar from "../../../components/faq/EditFAQSidebar";
+import Sidebar from "../../../components/layout/Sidebar";
 import FAQContentForm from "../../../components/faq/FAQContentForm";
 import FAQCategorization from "../../../components/faq/FAQCategorization";
 import FAQMetadata from "../../../components/faq/FAQMetadata";
@@ -52,31 +52,49 @@ export default function EditFAQClient() {
     }, [id]);
 
     async function handleSave() {
-        if (!id) return;
+        if (!question.trim()) {
+            alert("Please enter a question.");
+            return;
+        }
+
+        if (!answer.trim()) {
+            alert("Please enter an answer.");
+            return;
+        }
+
+        if (!category) {
+            alert("Please select a category.");
+            return;
+        }
 
         try {
-            await updateFAQ(id, {
-                question,
-                answer,
-                category,
-            });
+            if (id) {
+                await updateFAQ(id, {
+                    question,
+                    answer,
+                    category,
+                });
+            }
 
-            alert("FAQ updated successfully.");
+            alert("FAQ saved successfully.");
+
             router.push("/faqs");
         } catch (error) {
             console.error(error);
-            alert("Failed to update FAQ.");
+            alert("Failed to save FAQ.");
         }
     }
 
     async function handleDelete() {
         if (!id) return;
 
-        const confirmed = window.confirm(
-            "Are you sure you want to delete this FAQ?"
-        );
-
-        if (!confirmed) return;
+        if (
+            !confirm(
+                "Are you sure you want to delete this FAQ?"
+            )
+        ) {
+            return;
+        }
 
         try {
             await deleteFAQ(id);
@@ -109,11 +127,11 @@ export default function EditFAQClient() {
                 onCancel={handleCancel} />
 
             {/* Sidebar */}
-            <EditFAQSidebar />
+            <Sidebar />
 
             {/* Main Content */}
             <main
-                className="rounded-2xl border border-gray-200 bg-white p-10 shadow-sm"
+                className="rounded-2xl border border-gray-200 bg-white p-10 shadow-sm pt-20"
                 style={{ marginLeft: "256px" }}
             >
                 <div className="mx-auto max-w-6xl space-y-10 px-10 py-10">

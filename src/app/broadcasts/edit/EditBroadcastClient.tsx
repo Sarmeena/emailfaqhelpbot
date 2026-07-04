@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import BroadcastHeader from "../../../components/broadcast/BroadcastHeader";
-import BroadcastSidebar from "../../../components/broadcast/BroadcastSidebar";
+import Sidebar from "../../../components/layout/Sidebar";
+import Header from "../../../components/layout/Header";
 import BroadcastContentForm from "../../../components/broadcast/BroadcastContentForm";
 import BroadcastRecipients from "../../../components/broadcast/BroadcastRecipients";
 import BroadcastSettings from "../../../components/broadcast/BroadcastSettings";
@@ -153,13 +153,17 @@ export default function EditBroadcastClient() {
     }
 
     return (
-        <>
-            <BroadcastHeader />
+        <div className="flex min-h-screen bg-gray-100">
+            {/* Sidebar */}
+            <Sidebar />
 
-            <div className="flex min-h-screen bg-gray-50">
-                <BroadcastSidebar />
+            {/* Right Side */}
+            <div className="flex flex-1 flex-col md:ml-64">
+                {/* Header */}
+                <Header />
 
-                <main className="flex-1 pt-16 md:ml-64">
+                {/* Main Content */}
+                <main className="flex-1">
                     <div className="mx-auto max-w-7xl space-y-8 p-8">
 
                         {/* Page Header */}
@@ -211,6 +215,6 @@ export default function EditBroadcastClient() {
                     </div>
                 </main>
             </div>
-        </>
+        </div>
     );
 }

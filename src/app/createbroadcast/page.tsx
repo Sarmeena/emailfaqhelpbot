@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
-import BroadcastHeader from "../../components/broadcast/BroadcastHeader";
-import BroadcastSidebar from "../../components/broadcast/BroadcastSidebar";
+import Sidebar from "../../components/layout/Sidebar";
+import Header from "../../components/layout/Header";
 
 import CreateBroadcastCampaignDetails from "../../components/createbroadcast/CreateBroadcastCampaignDetails";
 import CreateBroadcastRecipients, { Recipient } from "../../components/createbroadcast/CreateBroadcastRecipients";
@@ -69,8 +69,8 @@ export default function CreateBroadcastPage() {
     }
 
     if (status === "Sent") {
-      // Trigger Mock Sending Simulation
-      startMockSending();
+      // Trigger Broadcast Sending
+      startSending();
       return;
     }
 
@@ -92,88 +92,96 @@ export default function CreateBroadcastPage() {
     }
   };
 
-  // Mock Sending logic
-  const startMockSending = () => {
+  // Real Sending logic via Gmail send API
+  const startSending = async () => {
     setShowSendingModal(true);
     setSendingProgress(0);
     setLiveLogs([]);
     setIsSendingFinished(false);
-  };
 
-  useEffect(() => {
-    if (!showSendingModal || isSendingFinished) return;
-
-    let currentIndex = 0;
     const totalRecipients = recipientsList.length;
-    
-    const interval = setInterval(async () => {
-      if (currentIndex >= totalRecipients) {
-        clearInterval(interval);
-        setSendingProgress(100);
-        setCurrentRecipient(null);
-        
-        // Save to Database with Sent status and deliveryHistory
-        try {
-          const finalHistory = liveLogs;
-          // Calculate stats
-          const deliveredCount = finalHistory.filter(h => h.status === "Delivered").length;
-          const openRate = Math.floor(Math.random() * 20) + 75; // 75-95%
-          const replyRate = Math.floor(Math.random() * 10) + 5;  // 5-15%
+    const finalHistory: DeliveryHistoryItem[] = [];
 
-          await createBroadcast({
-            subject: campaignName,
-            content: content,
-            category: "Newsletter",
-            recipients: `${recipientsList.length} Recipients`,
-            status: "Sent",
-            openRate,
-            replyRate,
-            // Custom field to hold delivery logs
-            deliveryHistory: finalHistory,
-          } as any);
-          
-          setIsSendingFinished(true);
-        } catch (err) {
-          console.error("Error saving sent broadcast", err);
-          alert("Error saving campaign logs to server.");
-          setShowSendingModal(false);
+    for (let i = 0; i < totalRecipients; i++) {
+      const recipient = recipientsList[i];
+      setCurrentRecipient(recipient);
+
+      let status: "Delivered" | "Failed" = "Failed";
+      try {
+        const sendRes = await fetch("/api/gmail/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient: recipient.email,
+            subject: subject || campaignName,
+            message: content,
+          }),
+        });
+
+        if (sendRes.ok) {
+          status = "Delivered";
+        } else {
+          console.error(`Gmail Send API failed for ${recipient.email}:`, await sendRes.text());
         }
-        return;
+      } catch (err) {
+        console.error(`Error connecting to send API for ${recipient.email}:`, err);
       }
 
-      const recipient = recipientsList[currentIndex];
-      setCurrentRecipient(recipient);
-      
-      // Simulate 90% success delivery rate
-      const status: "Delivered" | "Failed" = Math.random() > 0.1 ? "Delivered" : "Failed";
       const timestamp = new Date().toLocaleTimeString();
-
       const newLog: DeliveryHistoryItem = {
         name: recipient.name,
         email: recipient.email,
         status,
-        timestamp
+        timestamp,
       };
 
-      setLiveLogs(prev => [newLog, ...prev]);
-      setSendingProgress(Math.floor(((currentIndex + 1) / totalRecipients) * 100));
-      currentIndex++;
-    }, 600); // 600ms per email to make it visually pleasing and realistic
+      finalHistory.push(newLog);
+      setLiveLogs((prev) => [newLog, ...prev]);
+      setSendingProgress(Math.floor(((i + 1) / totalRecipients) * 100));
 
-    return () => clearInterval(interval);
-  }, [showSendingModal, recipientsList, isSendingFinished, campaignName, content, liveLogs]);
+      // 300ms pause to make it visually pleasant and stagger calls
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+
+    setCurrentRecipient(null);
+
+    // Save to Database with Sent status and deliveryHistory
+    try {
+      const openRate = Math.floor(Math.random() * 20) + 75; // 75-95%
+      const replyRate = Math.floor(Math.random() * 10) + 5;  // 5-15%
+
+      await createBroadcast({
+        subject: campaignName,
+        content: content,
+        category: "Newsletter",
+        recipients: `${recipientsList.length} Recipients`,
+        status: "Sent",
+        openRate,
+        replyRate,
+        deliveryHistory: finalHistory,
+      } as any);
+      
+      setIsSendingFinished(true);
+    } catch (err) {
+      console.error("Error saving sent broadcast", err);
+      alert("Error saving campaign logs to server.");
+      setShowSendingModal(false);
+    }
+  };
 
   return (
     <ProtectedRoute>
-      <>
-        <BroadcastHeader />
+      <div className="flex min-h-screen bg-gray-100">
+        {/* Sidebar */}
+        <Sidebar />
 
-        <div className="flex">
-          {/* Sidebar */}
-          <BroadcastSidebar />
+        {/* Right Side */}
+        <div className="flex flex-1 flex-col md:ml-64">
+          {/* Header */}
+          <Header />
 
           {/* Main Content */}
-          <main className="flex-1 bg-surface pt-24 pb-32 md:ml-72">
+          <main className="flex-1 bg-surface pt-24 pb-32">
             <div className="mx-auto max-w-7xl px-margin-mobile md:px-margin-desktop">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                 {/* Left */}
@@ -304,7 +312,7 @@ export default function CreateBroadcastPage() {
             </div>
           </div>
         )}
-      </>
+      </div>
     </ProtectedRoute>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
 
+import Sidebar from "../../components/layout/Sidebar";
 import FAQHeader from "../../components/faq-management/FAQHeader";
 import FAQFilters from "../../components/faq-management/FAQFilters";
 import FAQTable from "../../components/faq-management/FAQTable";
@@ -18,13 +19,17 @@ export default function FAQManagementPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-100">
+      <div className="flex min-h-screen bg-gray-100">
+        {/* Sidebar */}
+        <Sidebar />
 
-        {/* Header */}
-        <FAQHeader />
+        {/* Right Side */}
+        <div className="flex flex-1 flex-col md:ml-64">
+          {/* Header */}
+          <FAQHeader />
 
-        {/* Page */}
-        <main className="mx-auto max-w-7xl px-6 py-8">
+          {/* Page */}
+          <main className="mx-auto max-w-7xl px-6 py-8 mt-16 pb-24 md:pb-8">
 
           {/* Title */}
           <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -80,10 +85,10 @@ export default function FAQManagementPage() {
           </div>
 
         </main>
-
-        <FAQMobileNav />
-
       </div>
+    </div>
+
+      <FAQMobileNav />
     </ProtectedRoute>
   );
 }

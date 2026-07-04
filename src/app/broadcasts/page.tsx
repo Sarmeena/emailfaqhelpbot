@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import BroadcastHeader from "../../components/broadcast/BroadcastHeader";
-import BroadcastSidebar from "../../components/broadcast/BroadcastSidebar";
+import Sidebar from "../../components/layout/Sidebar";
+import Header from "../../components/layout/Header";
 import BroadcastStats from "../../components/broadcast/BroadcastStats";
 import BroadcastTable from "../../components/broadcast/BroadcastTable";
 import BroadcastMobileCards from "../../components/broadcast/BroadcastMobileCards";
@@ -12,13 +12,13 @@ import { Suspense } from "react";
 export default function BroadcastPage() {
   return (
     <ProtectedRoute>
-      <>
-        <BroadcastHeader />
+      <div className="flex min-h-screen bg-gray-100">
+        <Sidebar />
 
-        <div className="flex h-[calc(100vh-64px)]">
-          <BroadcastSidebar />
+        <div className="flex flex-1 flex-col md:ml-64">
+          <Header />
 
-          <main className="pt-16 md:ml-64 w-full">
+          <main className="mt-16 w-full p-8 pb-24 md:pb-8">
             {/* Page Header */}
             <div className="p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
@@ -54,10 +54,10 @@ export default function BroadcastPage() {
             </div>
           </main>
         </div>
+      </div>
 
-        <BroadcastBottomNav />
-        <BroadcastFAB />
-      </>
+      <BroadcastBottomNav />
+      <BroadcastFAB />
     </ProtectedRoute>
   );
 }
