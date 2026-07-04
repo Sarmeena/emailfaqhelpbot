@@ -4,7 +4,7 @@ import { getGmailConfig, saveGmailConfig } from "../../../../services/firestore/
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { recipient, subject, message, messageId } = body;
+    const { recipient, subject, message, messageId, threadId } = body;
 
     if (!recipient || !subject || !message) {
       return NextResponse.json({ success: false, error: "Missing required fields." }, { status: 400 });
@@ -88,6 +88,7 @@ ${message}
       },
       body: JSON.stringify({
         raw: base64Encoded,
+        threadId: threadId || undefined,
       }),
     });
 

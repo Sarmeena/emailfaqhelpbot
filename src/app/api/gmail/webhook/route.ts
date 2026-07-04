@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       priority,
       source: "Gmail",
       gmailMessageId: msgId,
-      gmailThreadId: msgId,
+      gmailThreadId: detail.threadId || msgId,
       escalated,
       createdAt: serverTimestamp(),
     });
@@ -165,6 +165,9 @@ export async function POST(request: NextRequest) {
       createdAt: serverTimestamp(),
     });
 
+    // Extract original Message-ID from headers to reply correctly
+    const messageIdHeader = headers.find((h: any) => h.name.toLowerCase() === "message-id")?.value || msgId;
+
     // Send the auto reply email back via Gmail API (In-Thread)
     const emailSubject = subject.toLowerCase().startsWith("re:") ? subject : `Re: ${subject}`;
     const emailRaw = [
@@ -172,8 +175,8 @@ export async function POST(request: NextRequest) {
       `Subject: ${emailSubject}`,
       `Content-Type: text/plain; charset=UTF-8`,
       `MIME-Version: 1.0`,
-      `In-Reply-To: ${msgId}`,
-      `References: ${msgId}`,
+      `In-Reply-To: ${messageIdHeader}`,
+      `References: ${messageIdHeader}`,
       "",
       reply,
     ].join("\r\n");
@@ -184,14 +187,23 @@ export async function POST(request: NextRequest) {
       .replace(/\//g, "_")
       .replace(/=+$/, "");
 
-    await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+    const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ raw: base64Encoded }),
+      body: JSON.stringify({ 
+        raw: base64Encoded,
+        threadId: detail.threadId || msgId
+      }),
     });
+
+    if (!sendRes.ok) {
+      const errorText = await sendRes.text();
+      console.error("[REALTIME BOT RESPONSE FAILED] Gmail API send failed:", errorText);
+      throw new Error(`Gmail API send failed: ${errorText}`);
+    }
 
     // Mark message as read in Gmail (remove UNREAD label)
     await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}/modify`, {

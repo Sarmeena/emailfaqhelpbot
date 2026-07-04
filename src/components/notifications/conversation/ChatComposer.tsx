@@ -131,6 +131,7 @@ export default function ChatComposer({
             subject: emailSubject,
             message: message,
             messageId: requestDetails.gmailMessageId,
+            threadId: requestDetails.gmailThreadId,
           }),
         });
       }
