@@ -6,6 +6,7 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   sendPasswordResetEmail,
+  updatePassword,
   User,
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
@@ -52,5 +53,13 @@ export const subscribeToAuth = (
 
 export const resetPassword = async (email: string) => {
   await sendPasswordResetEmail(auth, email);
+};
+
+export const changePassword = async (newPassword: string) => {
+  if (auth.currentUser) {
+    await updatePassword(auth.currentUser, newPassword);
+  } else {
+    throw new Error("No authenticated user session found.");
+  }
 };
 

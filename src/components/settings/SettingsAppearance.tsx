@@ -1,16 +1,39 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
 export default function SettingsAppearance() {
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
   return (
-    <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
+    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center gap-3">
-        <div className="rounded-lg bg-primary/10 p-2">
-          <Sun className="h-5 w-5 text-primary" />
+        <div className="rounded-lg bg-blue-100 p-2">
+          <Sun className="h-5 w-5 text-blue-700" />
         </div>
 
-        <h2 className="text-title-lg font-semibold text-on-surface">
+        <h2 className="text-lg font-bold text-gray-900">
           Appearance
         </h2>
       </div>
@@ -19,13 +42,17 @@ export default function SettingsAppearance() {
         {/* Light */}
         <button
           type="button"
-          className="rounded-lg border-2 border-primary bg-primary/5 p-4 transition"
+          onClick={() => handleThemeChange("light")}
+          className={`rounded-lg border-2 p-4 transition active:scale-95 cursor-pointer ${
+            theme === "light"
+              ? "border-blue-600 bg-blue-50 text-blue-700"
+              : "border-gray-200 text-gray-500 hover:border-blue-600"
+          }`}
         >
           <div className="flex flex-col items-center gap-2">
-            <Sun className="h-6 w-6 text-primary" />
-
-            <span className="font-semibold text-primary">
-              Light
+            <Sun className="h-6 w-6" />
+            <span className="font-semibold text-xs uppercase tracking-wider">
+              Light Mode
             </span>
           </div>
         </button>
@@ -33,13 +60,17 @@ export default function SettingsAppearance() {
         {/* Dark */}
         <button
           type="button"
-          className="rounded-lg border border-outline-variant p-4 transition hover:border-primary"
+          onClick={() => handleThemeChange("dark")}
+          className={`rounded-lg border-2 p-4 transition active:scale-95 cursor-pointer ${
+            theme === "dark"
+              ? "border-blue-600 bg-blue-50 text-blue-700"
+              : "border-gray-200 text-gray-500 hover:border-blue-600"
+          }`}
         >
           <div className="flex flex-col items-center gap-2">
-            <Moon className="h-6 w-6 text-on-surface-variant" />
-
-            <span className="text-on-surface-variant">
-              Dark
+            <Moon className="h-6 w-6" />
+            <span className="font-semibold text-xs uppercase tracking-wider">
+              Dark Mode
             </span>
           </div>
         </button>

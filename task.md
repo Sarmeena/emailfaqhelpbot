@@ -9,9 +9,10 @@
 - [x] Connect components to new backend route
   - [x] Refactor `ChatComposer.tsx` to send messages via POST to `/api/conversations`.
   - [x] Refactor `ConversationHistory.tsx` to fetch initial lists from GET `/api/conversations`.
-- [x] Header UI Adjustments
-  - [x] Modify `src/components/layout/Header.tsx` to remove the notification bell, write "Admin" instead of the name and role, and show a blank profile avatar placeholder.
-  - [x] Modify `src/components/faq-management/FAQHeader.tsx` to apply identical header cleanups (remove bell, change user details to "Admin", and show a blank avatar placeholder).
+- [x] Header UI Adjustments & Search Bar Removal
+  - [x] Modify `src/components/layout/Header.tsx` to remove the search bar, mobile search button, write "Admin", and show a blank profile avatar placeholder.
+  - [x] Modify `src/components/faq-management/FAQHeader.tsx` to apply identical header cleanups (remove search input, user details as "Admin", blank avatar placeholder).
+  - [x] Modify `RequestHeader.tsx` to remove search bar, and style the right corner profile block exactly matching the other headers (Admin + User icon).
 - [x] Sidebar Cleanups and Settings Integration
   - [x] Remove the "New Broadcast" and "Add FAQ" buttons from the dashboard header in `src/app/dashboard/page.tsx`.
   - [x] Rename "KB Search" to "FAQ" and change its icon to `CircleHelp` in the sidebar.
@@ -34,16 +35,45 @@
 - [x] Ticket Creation Button & Chat Alignment Cleaning
   - [x] Removed "New Ticket" button from `Sidebar.tsx`.
   - [x] Removed the floating `<RequestFloatingButton />` from the requests page (`src/app/requests/page.tsx`).
-  - [x] Maintained the "New Request" button in the top right of the requests header ([RequestHeader.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestHeader.tsx)).
-  - [x] Modified [ChatWindow.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatWindow.tsx) to align received messages (anything not from `"agent"` or `"AI Assistant"`) to the left, and sent responses (from `"agent"` or `"AI Assistant"`) to the right.
+  - [x] Maintained the "New Request" button in the top right of the requests header.
+  - [x] Modified `ChatWindow.tsx` to align received messages to the left, and sent responses to the right.
   - [x] Configured webhook auto-reply to default to `true` and updated `generateReply.ts` to always query Gemini to generate acknowledgment/escalation emails if no FAQs match, guaranteeing AI auto-reply is fully enabled for all incoming messages.
 - [x] Requests Table Responsiveness & Automated Gmail Import
-  - [x] Added `overflow-x-auto` wrapper and `min-w-[1000px]` constraints to [RequestsTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestsTable.tsx) to enable horizontal scrolling and avoid hidden Action buttons.
+  - [x] Added `overflow-x-auto` wrapper and `min-w-[1000px]` constraints to `RequestsTable.tsx` to enable horizontal scrolling and avoid hidden Action buttons.
   - [x] Removed tabs and integrated background auto-import triggers in [requests/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx).
-  - [x] Implemented automatic background import mechanism in [messages/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/messages/route.ts) GET query: whenever emails are loaded, the system checks and imports any unread messages, assigns request ID, stores in conversations and messages Firestore, and automatically triggers Gemini in-thread email reply.
+  - [x] Implemented automatic background import mechanism in `messages/route.ts` GET query: whenever emails are loaded, the system checks and imports any unread messages, assigns request ID, stores in conversations and messages Firestore, and automatically triggers Gemini in-thread email reply.
 - [x] Fixed-Width Layouts & Overflow Wrapping Protection
   - [x] Added `shrink-0` to the main navigation `<Sidebar />` aside element.
   - [x] Added `shrink-0` to `<ConversationHistory />` and `<ConversationAIPanel />` to keep sidebar panel widths static regardless of text contents.
-  - [x] Added `min-w-0` to the central chat area in [conversation/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/conversation/page.tsx) to enforce content boundaries.
-  - [x] Added CSS `break-words`, `max-w-full`, and `overflow-hidden` classes to text bubbles inside [ChatWindow.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatWindow.tsx) and [ConversationAIPanel.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationAIPanel.tsx) to prevent horizontal layout breakages from long URLs or continuous text.
+  - [x] Added `min-w-0` to the central chat area in `conversation/page.tsx` to enforce content boundaries.
+  - [x] Added CSS `break-words`, `max-w-full`, and `overflow-hidden` classes to text bubbles inside `ChatWindow.tsx` and `ConversationAIPanel.tsx` to prevent horizontal layout breakages from long URLs or continuous text.
+- [x] Broadcast Gemini Copywriter, Live Stats Cards, & FAQ Portal
+  - [x] Created custom backend copywriter endpoint `/api/ai/broadcast` to draft broadcast emails.
+  - [x] Integrated Gemini writer helper inside the new broadcast editor (`CreateBroadcastEditor.tsx`) and edit broadcast page (`BroadcastContentForm.tsx`).
+  - [x] Integrated real email sending loop on the edit/update page handler inside `EditBroadcastClient.tsx`.
+  - [x] Refactored `BroadcastStats.tsx` to query live Firestore campaigns and dynamically update stats metrics (Total Sent, Open Rate, Reply Rate, and Scheduled count).
+  - [x] Created public search FAQ view portal at `faqs/portal/page.tsx`.
+  - [x] Wired the View FAQ Portal button in `CreateBroadcastPreview.tsx` (as a functional `Link`) and linked a entry button in `faqs/page.tsx` to route straight to the portal.
+  - [x] Adjusted `CreateBroadcastFooter.tsx` background style to white.
+  - [x] Fixed array filtering parse error in `faqs/portal/page.tsx` to check for nested response envelopes.
+- [x] Suspense & useSearchParams Referrer Redirects
+  - [x] Wrapped `faqs/portal/page.tsx` in a `<Suspense>` container to prevent static build warnings.
+  - [x] Configured the View FAQ Portal link in `CreateBroadcastPreview.tsx` to pass `?from=createbroadcast` and open in the same tab.
+  - [x] Configured the Back to Management header action link on the portal page to read search parameters and conditionally direct back to `/createbroadcast` with the label **"Continue Creating Campaign"** if the user navigated from the campaign draft page.
+- [x] Settings UI Refactoring, Authentication & Theme Switching
+  - [x] Configured the settings profile header badge to display Admin user role, system email (`emailfaqhelpbot@gmail.com`), and project name (`Email FAQ Help Bot`) at the top of [SettingsProfile.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/settings/SettingsProfile.tsx).
+  - [x] Pre-populated name, email, and project name inputs inside the profile card with read-only Admin values.
+  - [x] Removed Firestore database config (`SettingsFirebaseCard.tsx`), SMTP configuration (`SettingsSMTP.tsx`), Notifications settings (`SettingsNotifications.tsx`), Appearance Settings (`SettingsAppearance.tsx`), and redundant logout session card (`SettingsLogout.tsx`).
+  - [x] Added `changePassword` handler using Firebase `updatePassword` inside [auth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/auth/auth.ts).
+  - [x] Configured password change forms and reset email triggers directly connected to the auth backend inside [SettingsSecurity.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/settings/SettingsSecurity.tsx), directing email reset links to `emailfaqhelpbot@gmail.com`.
+- [x] Dashboard Data Syncing, Live AI Insights, & Request Filters
+  - [x] Removed the floating create request button (`RequestFloatingButton.tsx`) from the dashboard page (`src/app/dashboard/page.tsx`).
+  - [x] Hooked up `RecentRequests.tsx` to fetch live Firestore requests and render recent cards dynamically.
+  - [x] Hooked up `BroadcastTable.tsx` to load live broadcast campaigns from Firestore.
+  - [x] Updated `TrendingFaqs.tsx` to map live top FAQs and default empty usage attributes to sliding counts.
+  - [x] Converted `AIInsightCard.tsx` into a client component loading total requests and total FAQs in real-time.
+  - [x] Lifted active filter state inside the requests main page ([page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx)).
+  - [x] Configured [FilterBar.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/FilterBar.tsx) to accept filter parameters and apply active classes to matching status blocks.
+  - [x] Configured [RequestsTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestsTable.tsx) and [RequestCards.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestCards.tsx) to filter requests dynamically by status (Active, Pending, Resolved) and priority (High).
+  - [x] Added `useRef` selection range formatting helper to [CreateBroadcastEditor.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/createbroadcast/CreateBroadcastEditor.tsx#L27) to apply Bold (`**`), Italic (`*`), custom Link references, and Image tags directly to selected text inside the broadcast composer.
 - [x] Verify integration works correctly.

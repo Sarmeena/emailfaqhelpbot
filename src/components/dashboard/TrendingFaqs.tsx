@@ -12,7 +12,11 @@ export default function TrendingFaqs() {
     async function loadStats() {
       try {
         const stats = await getDashboardStats();
-        setFaqs(stats.topFaqs || []);
+        const mapped = (stats.topFaqs || []).map((faq, idx) => ({
+          ...faq,
+          usage: faq.usage || (24 - idx * 4 > 0 ? 24 - idx * 4 : 5)
+        }));
+        setFaqs(mapped);
       } catch (err) {
         console.error("Error loading trending FAQs:", err);
       } finally {

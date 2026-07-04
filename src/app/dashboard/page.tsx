@@ -7,7 +7,6 @@ import TrendingFaqs from "../../components/dashboard/TrendingFaqs";
 import BroadcastTable from "../../components/dashboard/BroadcastTable";
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
 import MobileNav from "../../components/layout/MobileNav";
-import FloatingButton from "../../components/layout/RequestFloatingButton";
 
 export default function DashboardPage() {
   return (
@@ -64,7 +63,6 @@ export default function DashboardPage() {
       </div>
 
       <MobileNav />
-      <FloatingButton />
 
     </div>
     </ProtectedRoute>

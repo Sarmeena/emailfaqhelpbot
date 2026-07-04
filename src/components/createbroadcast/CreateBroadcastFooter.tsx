@@ -19,7 +19,7 @@ export default function CreateBroadcastFooter({
   onSchedule,
 }: CreateBroadcastFooterProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] md:px-margin-desktop md:py-5">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline-variant bg-white px-margin-mobile py-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] md:px-margin-desktop md:py-5">
       <div className="mx-auto flex max-w-360 flex-col gap-3 md:flex-row md:items-center md:justify-end">
         {/* Action Buttons */}
         <div className="grid grid-cols-3 gap-3 md:flex md:gap-4">

@@ -23,7 +23,11 @@ const statusColor: Record<string, string> = {
   Resolved: "bg-green-100 text-green-700",
 };
 
-export default function RequestCards() {
+interface RequestCardsProps {
+  filter: string;
+}
+
+export default function RequestCards({ filter }: RequestCardsProps) {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,11 +53,20 @@ export default function RequestCards() {
     await refresh();
   }
 
+  const filteredRequests = requests.filter((req) => {
+    if (filter === "All") return true;
+    if (filter === "Active") return req.status === "Active" || req.status === "Open" || req.status === "In Progress";
+    if (filter === "Pending") return req.status === "Pending";
+    if (filter === "High Priority") return req.priority === "High";
+    if (filter === "Resolved") return req.status === "Resolved";
+    return true;
+  });
+
   if (loading) {
     return <div className="md:hidden p-6 text-center text-gray-400">Loading requests...</div>;
   }
 
-  if (requests.length === 0) {
+  if (filteredRequests.length === 0) {
     return (
       <div className="flex flex-col gap-4 md:hidden">
         <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
@@ -61,7 +74,7 @@ export default function RequestCards() {
             <Hash size={40} className="text-blue-600 opacity-40" />
           </div>
           <h3 className="mb-2 text-2xl font-semibold text-gray-800">No requests yet</h3>
-          <p className="text-gray-500">New requests will appear here once they arrive.</p>
+          <p className="text-gray-500">No requests matching this filter status.</p>
         </div>
       </div>
     );
@@ -69,7 +82,7 @@ export default function RequestCards() {
 
   return (
     <div className="flex flex-col gap-4 md:hidden">
-      {requests.map((request) => {
+      {filteredRequests.map((request) => {
         const threadId = request.threadId ?? deriveThreadId(request.customerEmail);
         return (
           <div key={request.id} className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">

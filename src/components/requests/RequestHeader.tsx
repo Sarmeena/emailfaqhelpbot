@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { Menu, Search, Settings, Plus } from "lucide-react";
+import { Menu, Plus, User, ChevronDown } from "lucide-react";
 
 export default function RequestHeader() {
   return (
@@ -24,18 +23,6 @@ export default function RequestHeader() {
 
       {/* Right */}
       <div className="flex items-center gap-4">
-
-        {/* Search */}
-        <div className="hidden items-center rounded-full border bg-gray-50 px-4 py-2 md:flex">
-          <Search className="mr-2 h-4 w-4 text-gray-500" />
-
-          <input
-            type="text"
-            placeholder="Search tickets..."
-            className="w-64 bg-transparent outline-none"
-          />
-        </div>
-
         {/* New Request Button */}
         <Link
           href="/requests/create"
@@ -48,19 +35,19 @@ export default function RequestHeader() {
         </Link>
 
         {/* Profile */}
-        <Image
-          src="/profile.png"
-          alt="Profile"
-          width={40}
-          height={40}
-          className="rounded-full border-2 border-blue-600"
-        />
+        <div className="hidden cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-100 md:flex">
+          <div className="text-right">
+            <p className="text-sm font-bold text-gray-800">
+              Admin
+            </p>
+          </div>
 
-        {/* Settings */}
-        <button>
-          <Settings className="h-6 w-6 text-gray-600 hover:text-blue-700" />
-        </button>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+            <User size={20} />
+          </div>
 
+          <ChevronDown size={16} />
+        </div>
       </div>
     </header>
   );

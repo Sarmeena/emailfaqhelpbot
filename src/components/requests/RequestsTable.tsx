@@ -17,7 +17,11 @@ type ThreadGroup = {
   requests: Request[];
 };
 
-export default function RequestsTable() {
+interface RequestsTableProps {
+  filter: string;
+}
+
+export default function RequestsTable({ filter }: RequestsTableProps) {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
@@ -57,10 +61,19 @@ export default function RequestsTable() {
     await refresh();
   }
 
+  const filteredRequests = requests.filter((req) => {
+    if (filter === "All") return true;
+    if (filter === "Active") return req.status === "Active" || req.status === "Open" || req.status === "In Progress";
+    if (filter === "Pending") return req.status === "Pending";
+    if (filter === "High Priority") return req.priority === "High";
+    if (filter === "Resolved") return req.status === "Resolved";
+    return true;
+  });
+
   // Group requests by threadId (derived from email)
   const threadGroups: ThreadGroup[] = (() => {
     const map = new Map<string, ThreadGroup>();
-    requests.forEach((req) => {
+    filteredRequests.forEach((req) => {
       const tid = req.threadId ?? deriveThreadId(req.customerEmail);
       if (!map.has(tid)) {
         map.set(tid, { threadId: tid, customerEmail: req.customerEmail, requests: [] });

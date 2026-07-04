@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Monitor,
   Smartphone,
@@ -93,12 +94,12 @@ export default function CreateBroadcastPreview({
                 </div>
 
                 <div className="border-t border-outline-variant pt-6">
-                  <button
-                    type="button"
-                    className="w-full rounded-lg bg-primary py-3 text-label-md font-label-md text-on-primary transition hover:bg-primary-container"
+                  <Link
+                    href="/faqs/portal?from=createbroadcast"
+                    className="block text-center w-full rounded-lg bg-primary py-3 text-label-md font-label-md text-on-primary transition hover:bg-primary-container"
                   >
                     View FAQ Portal
-                  </button>
+                  </Link>
                 </div>
               </div>
 

@@ -32,6 +32,8 @@ export default function RequestsPage() {
     triggerGmailSync();
   }, []);
 
+  const [filter, setFilter] = useState("All");
+
   return (
     <ProtectedRoute>
       <>
@@ -62,13 +64,13 @@ export default function RequestsPage() {
             </div>
 
             {/* Filters */}
-            <FilterBar />
+            <FilterBar activeFilter={filter} onFilterChange={setFilter} />
 
             {/* Desktop Table */}
-            <RequestsTable key={syncKey} />
+            <RequestsTable key={syncKey} filter={filter} />
 
             {/* Mobile Cards */}
-            <RequestCards key={`cards-${syncKey}`} />
+            <RequestCards key={`cards-${syncKey}`} filter={filter} />
           </div>
         </main>
 

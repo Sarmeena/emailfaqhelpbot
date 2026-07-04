@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Search, User } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 
 export default function Header() {
   return (
@@ -18,27 +18,10 @@ export default function Header() {
               Email Bot
             </h2>
           </div>
-
-          {/* Desktop Search */}
-          <div className="relative hidden md:block">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={18}
-            />
-
-            <input
-              type="text"
-              placeholder="Search tickets, FAQs or clients..."
-              className="w-96 rounded-full border border-gray-300 bg-gray-50 py-2 pl-10 pr-4 text-sm outline-none focus:border-blue-600"
-            />
-          </div>
         </div>
 
         {/* Right Side */}
         <div className="flex items-center gap-4">
-          <button className="rounded-full p-2 hover:bg-gray-100 md:hidden">
-            <Search size={22} />
-          </button>
 
           <div className="hidden cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-100 md:flex">
             <div className="text-right">

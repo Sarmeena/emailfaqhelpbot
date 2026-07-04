@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Search, ChevronDown, User } from "lucide-react";
+import { Menu, ChevronDown, User } from "lucide-react";
 
 export default function FAQHeader() {
   return (
@@ -19,39 +19,6 @@ export default function FAQHeader() {
             FAQ Management
           </h1>
 
-        </div>
-
-        {/* Center Search */}
-        <div className="mx-8 hidden max-w-xl flex-1 lg:block">
-          <div className="relative">
-
-            <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-
-            <input
-              type="text"
-              placeholder="Search knowledge base..."
-              className="
-                w-full
-                rounded-full
-                border
-                border-gray-300
-                bg-gray-50
-                py-2.5
-                pl-11
-                pr-4
-                text-sm
-                outline-none
-                transition
-                focus:border-blue-600
-                focus:ring-2
-                focus:ring-blue-100
-              "
-            />
-
-          </div>
         </div>
 
         {/* Right */}

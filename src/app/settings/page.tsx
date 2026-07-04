@@ -1,14 +1,9 @@
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
 import SettingsProfile from "../../components/settings/SettingsProfile";
-import SettingsFirebaseCard from "../../components/settings/SettingsFirebaseCard";
 import SettingsGemini from "../../components/settings/SettingsGemini";
-import SettingsSMTP from "../../components/settings/SettingsSMTP";
 import SettingsGmail from "../../components/settings/SettingsGmail";
-import SettingsNotifications from "../../components/settings/SettingsNotifications";
-import SettingsAppearance from "../../components/settings/SettingsAppearance";
 import SettingsSecurity from "../../components/settings/SettingsSecurity";
-import SettingsLogout from "../../components/settings/SettingsLogout";
 import SettingsBottomNav from "../../components/settings/SettingsBottomNav";
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
 
@@ -29,22 +24,11 @@ export default function SettingsPage() {
             <div className="space-y-6">
               <SettingsProfile />
 
-              <SettingsFirebaseCard />
-
               <SettingsGemini />
 
               <SettingsGmail />
 
-              <SettingsSMTP />
-
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <SettingsNotifications />
-                <SettingsAppearance />
-              </div>
-
               <SettingsSecurity />
-
-              <SettingsLogout />
             </div>
           </main>
         </div>
