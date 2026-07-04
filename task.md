@@ -31,4 +31,10 @@
   - [x] Refactored `generateReply.ts` to dynamically use the configured Gemini model, temperature, and API key from Firestore.
   - [x] Created suggestion endpoint `/api/ai/suggest` and auto-FAQ generator endpoint `/api/ai/generate-faq`.
   - [x] Replaced mock structures in `ConversationAIPanel.tsx` with live hooks that retrieve Gemini suggestions and auto-draft FAQs based on live conversations, with an option to write straight to the database Knowledge Base.
+- [x] Ticket Creation Button & Chat Alignment Cleaning
+  - [x] Removed "New Ticket" button from `Sidebar.tsx`.
+  - [x] Removed the floating `<RequestFloatingButton />` from the requests page (`src/app/requests/page.tsx`).
+  - [x] Maintained the "New Request" button in the top right of the requests header ([RequestHeader.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestHeader.tsx)).
+  - [x] Modified [ChatWindow.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatWindow.tsx) to align received messages (anything not from `"agent"` or `"AI Assistant"`) to the left, and sent responses (from `"agent"` or `"AI Assistant"`) to the right.
+  - [x] Configured webhook auto-reply to default to `true` and updated `generateReply.ts` to always query Gemini to generate acknowledgment/escalation emails if no FAQs match, guaranteeing AI auto-reply is fully enabled for all incoming messages.
 - [x] Verify integration works correctly.

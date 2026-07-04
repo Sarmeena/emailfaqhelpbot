@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import MobileNav from "../../components/layout/MobileNav";
-import RequestFloatingButton from "../../components/layout/RequestFloatingButton";
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
 import RequestHeader from "../../components/requests/RequestHeader";
 import FilterBar from "../../components/requests/FilterBar";
@@ -81,9 +80,6 @@ export default function RequestsPage() {
 
       {/* Mobile Navigation */}
       <MobileNav />
-
-      {/* Floating Action Button */}
-      <RequestFloatingButton />
     </>
     </ProtectedRoute>
   );

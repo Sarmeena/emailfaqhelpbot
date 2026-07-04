@@ -34,8 +34,8 @@ export async function saveGeminiConfig(config: Partial<GeminiConfig>): Promise<v
       apiKey: "",
       model: "gemini-2.5-flash",
       temperature: 0.7,
-      autoReplyEnabled: false,
-      autoFaqEnabled: false,
+      autoReplyEnabled: true,
+      autoFaqEnabled: true,
       ...current,
       ...config,
     };

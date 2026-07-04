@@ -8,15 +8,6 @@ export async function generateReply(
     answer: string;
   }[]
 ) {
-  // No matching FAQ → don't call Gemini
-  if (faqs.length === 0) {
-    return `Thank you for contacting us.
-
-We couldn't find an answer for your request in our knowledge base.
-
-Your request has been forwarded to our support team, who will assist you shortly.`;
-  }
-
   const config = await getGeminiConfig();
   const apiKey = config?.apiKey || process.env.GEMINI_API_KEY;
   const model = config?.model || "gemini-2.5-flash";
@@ -24,23 +15,20 @@ Your request has been forwarded to our support team, who will assist you shortly
 
   if (!apiKey) {
     console.error("Gemini API key is not configured.");
-    return `Thank you for contacting us. We couldn't match a quick answer. An agent has been notified and will assist you shortly.`;
+    return `Thank you for contacting us. We couldn't find an automatic answer. A customer support agent has been notified and will assist you shortly.`;
   }
 
   const ai = new GoogleGenAI({
     apiKey: apiKey,
   });
 
-  const faqContext = faqs
-    .map(
-      (faq) =>
-        `Question: ${faq.question}\nAnswer: ${faq.answer}`
-    )
-    .join("\n\n");
+  const hasFAQs = faqs && faqs.length > 0;
+  const faqContext = hasFAQs
+    ? faqs.map((faq) => `Question: ${faq.question}\nAnswer: ${faq.answer}`).join("\n\n")
+    : "No relevant FAQ articles available.";
 
-  const response = await ai.models.generateContent({
-    model: model,
-    contents: `
+  const prompt = hasFAQs
+    ? `
 You are a professional customer support assistant.
 
 Use ONLY the FAQ below.
@@ -53,7 +41,20 @@ ${customerMessage}
 Write a polite professional reply.
 
 Do not add any information that is not in the FAQ.
-`,
+`
+    : `
+You are a professional customer support assistant.
+We received the following inquiry, but we do not have specific FAQ answers matching it.
+
+Customer inquiry:
+${customerMessage}
+
+Write a polite, professional support acknowledgment email letting the customer know we have received their message and our support team will help them shortly. Do not state specific solutions since we don't have FAQs for it, just write a helpful, reassuring acknowledgment.
+`;
+
+  const response = await ai.models.generateContent({
+    model: model,
+    contents: prompt,
     config: {
       temperature: temperature
     }

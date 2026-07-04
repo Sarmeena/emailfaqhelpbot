@@ -90,8 +90,9 @@ export default function ChatWindow({
 </div>
         </div>
       ) : (
-        messages.map((msg) =>
-          msg.sender === "customer" ? (
+        messages.map((msg) => {
+          const isReceived = msg.sender !== "agent" && msg.sender !== "AI Assistant";
+          return isReceived ? (
             <div
               key={msg.id}
               className="flex max-w-[85%] items-start gap-3"
@@ -103,35 +104,41 @@ export default function ChatWindow({
               />
 
               <div className="rounded-2xl rounded-tl-none border bg-gray-100 p-4 shadow-sm">
-  <p className="whitespace-pre-wrap text-sm text-gray-800">
-    {msg.message}
-  </p>
+                <p className="whitespace-pre-wrap text-sm text-gray-800 font-medium">
+                  {msg.message}
+                </p>
 
-  <span className="mt-2 block text-xs text-gray-500">
-    {msg.createdAt?.toDate().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    })}
-  </span>
-</div>
+                <span className="mt-2 block text-[10px] text-gray-400">
+                  {msg.sender} • {msg.createdAt?.toDate().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
             </div>
           ) : (
             <div
               key={msg.id}
-              className="ml-auto flex max-w-[85%] flex-row-reverse items-start gap-3"
+              className="ml-auto flex max-w-[85%] flex-row-reverse items-start gap-3 animate-fade-in"
             >
-              <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-blue-700 text-xs font-bold text-white">
-                AG
+              <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-blue-700 text-xs font-bold text-white shadow-sm shrink-0">
+                {msg.sender === "AI Assistant" ? "🤖" : "AG"}
               </div>
 
               <div className="rounded-2xl rounded-tr-none bg-blue-700 p-4 text-white shadow-md">
-                <p className="whitespace-pre-wrap text-sm">
+                <p className="whitespace-pre-wrap text-sm font-medium">
                   {msg.message}
                 </p>
+                <span className="mt-2 block text-right text-[10px] text-blue-100">
+                  {msg.sender} • {msg.createdAt?.toDate().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
               </div>
             </div>
-          )
-        )
+          );
+        })
       )}
 
       {/* Auto Scroll Target */}

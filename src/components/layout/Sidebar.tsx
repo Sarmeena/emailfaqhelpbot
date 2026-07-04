@@ -87,13 +87,7 @@ export default function Sidebar() {
         </div>
       </Link>
 
-      <button 
-        onClick={() => router.push("/requests/create")}
-        className="mb-md flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-on-primary cursor-pointer hover:bg-blue-800 transition mx-4 shadow-sm"
-      >
-        <Plus size={18} />
-        New Ticket
-      </button>
+      <div className="mb-md" />
 
       <nav className="flex-1 space-y-1 px-3">
         {menu.map((item) => {

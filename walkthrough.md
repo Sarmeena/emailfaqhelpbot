@@ -1,6 +1,6 @@
 # Walkthrough - Navigation Links, Sidebar Customization, and backend APIs
 
-We have completed the dashboard cleanups, sidebar menu customization, unified settings layout routing, implemented the backend CRUD endpoint for FAQ management, and integrated Gemini automation features.
+We have completed the dashboard cleanups, sidebar menu customization, unified settings layout routing, implemented the backend CRUD endpoint for FAQ management, integrated Gemini automation features, simplified ticket creation entry points, fixed message alignments, and enabled AI auto-replies across all incoming support inquiries.
 
 ## Changes Made
 
@@ -37,3 +37,14 @@ We have completed the dashboard cleanups, sidebar menu customization, unified se
 * **Suggested Response & FAQ Generation (Conversations page)**:
   - Created backend suggest route [suggest/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/ai/suggest/route.ts) and draft generator route [generate-faq/route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/ai/generate-faq/route.ts).
   - Wired [ConversationAIPanel.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationAIPanel.tsx) to query live responses, show match percentages, copy suggested text directly into the chat composer, and generate custom QA articles from ticket text.
+
+### Ticket Creation & Chat Layout Cleaning
+* **Ticket Buttons**:
+  - Removed "New Ticket" button from [Sidebar.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/layout/Sidebar.tsx).
+  - Removed the floating `<RequestFloatingButton />` from the requests list page ([requests/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/requests/page.tsx)).
+  - Kept the "New Request" button inside [RequestHeader.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/requests/RequestHeader.tsx) as the single clean creation entry point.
+* **Message Alignment**:
+  - Refactored [ChatWindow.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatWindow.tsx) to distinguish incoming user messages (anything where sender is not `"agent"` or `"AI Assistant"`) from responses. Customer messages are aligned to the left (grey bubble), while agent/AI responses are aligned to the right (blue bubble).
+* **Auto-Reply Default**:
+  - Configured `geminiConfig` to default to `true` for auto-reply automation.
+  - Refactored [generateReply.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/ai/generateReply.ts) to query Gemini and generate dynamic acknowledgment emails even when there are no relevant FAQs, guaranteeing that an automated AI reply is sent for all incoming emails.

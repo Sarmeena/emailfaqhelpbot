@@ -116,12 +116,8 @@ export async function POST(request: NextRequest) {
     const priority = escalated ? "High" : "Medium";
     const status = escalated ? "Open" : "In Progress";
 
-    let reply = "";
-    if (escalated) {
-      reply = `Thank you for contacting us (Ref: ${requestId}).\n\nYour message regarding "${subject}" has been received. Because this query is sensitive, complex, or requires account-level details, I have escalated this issue to a human support agent. A team member will reply to you directly in this thread shortly.`;
-    } else {
-      reply = await generateReply(body, matchingFAQs);
-    }
+    // Always generate reply using Gemini AI
+    const reply = await generateReply(body, matchingFAQs);
 
     // Save parallel details in Firestore
     const requestDocRef = doc(collection(db, "requests"));
@@ -170,7 +166,7 @@ export async function POST(request: NextRequest) {
     const messageIdHeader = headers.find((h: any) => h.name.toLowerCase() === "message-id")?.value || msgId;
 
     const geminiConfig = await getGeminiConfig();
-    const shouldSendAutoReply = geminiConfig?.autoReplyEnabled ?? false;
+    const shouldSendAutoReply = geminiConfig ? geminiConfig.autoReplyEnabled : true;
 
     if (shouldSendAutoReply) {
       // Send the auto reply email back via Gmail API (In-Thread)
