@@ -1,6 +1,6 @@
 # Walkthrough - Conversations Sidebar Link and Backend Route
 
-We have successfully added the "Conversations" button to the Sidebar navigation, linked it to the `/conversation` page, and refactored the conversation component layer to use a Next.js backend API route `/api/conversations`.
+We have successfully added the "Conversations" button to the Sidebar navigation, linked it to the `/conversation` page, refactored the conversation component layer to use a Next.js backend API route `/api/conversations`, and simplified the header details.
 
 ## Changes Made
 
@@ -15,3 +15,7 @@ We have successfully added the "Conversations" button to the Sidebar navigation,
 ### Chat Components Refactoring
 * **Composer**: Modified [ChatComposer.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatComposer.tsx) to submit messages using `fetch` POST requests to the `/api/conversations` backend route.
 * **History**: Modified [ConversationHistory.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationHistory.tsx) to load the initial list of conversations from `/api/conversations` GET requests.
+
+### Header UI Customization
+* **Main Header**: Modified [Header.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/layout/Header.tsx) to remove the Bell button, substitute the user name/role with a clean **Admin** title, and replace the dynamic user avatar image with a placeholder User icon from `lucide-react`.
+* **FAQ Header**: Modified [FAQHeader.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/faq-management/FAQHeader.tsx) to apply identical adjustments.

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, User } from "lucide-react";
 
 export default function Header() {
   return (
@@ -36,27 +36,18 @@ export default function Header() {
 
         {/* Right Side */}
         <div className="flex items-center gap-4">
-          <button className="rounded-full p-2 hover:bg-gray-100">
-            <Bell size={22} />
-          </button>
-
           <button className="rounded-full p-2 hover:bg-gray-100 md:hidden">
             <Search size={22} />
           </button>
 
           <div className="hidden cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-100 md:flex">
             <div className="text-right">
-              <p className="text-sm font-semibold">Alex Support</p>
-              <p className="text-xs uppercase tracking-wider text-gray-500">
-                Super Admin
-              </p>
+              <p className="text-sm font-bold text-gray-800">Admin</p>
             </div>
 
-            <img
-              src="https://i.pravatar.cc/40"
-              alt="Profile"
-              className="h-10 w-10 rounded-full"
-            />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+              <User size={20} />
+            </div>
 
             <ChevronDown size={18} />
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Bell, Search, ChevronDown } from "lucide-react";
+import { Menu, Search, ChevronDown, User } from "lucide-react";
 
 export default function FAQHeader() {
   return (
@@ -57,30 +57,17 @@ export default function FAQHeader() {
         {/* Right */}
         <div className="flex items-center gap-4">
 
-          {/* Notification */}
-          <button className="relative rounded-full p-2 hover:bg-gray-100">
-            <Bell size={22} />
-
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-          </button>
-
           {/* Profile */}
           <button className="hidden items-center gap-3 rounded-xl px-2 py-1 hover:bg-gray-100 md:flex">
 
-            <img
-              src="https://i.pravatar.cc/40?img=12"
-              alt="Support Agent"
-              className="h-10 w-10 rounded-full object-cover"
-            />
-
             <div className="text-left">
-              <p className="text-sm font-semibold">
-                Alex Support
+              <p className="text-sm font-bold text-gray-800">
+                Admin
               </p>
+            </div>
 
-              <p className="text-xs text-gray-500">
-                Super Admin
-              </p>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+              <User size={20} />
             </div>
 
             <ChevronDown size={16} />

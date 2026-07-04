@@ -9,4 +9,7 @@
 - [x] Connect components to new backend route
   - [x] Refactor `ChatComposer.tsx` to send messages via POST to `/api/conversations`.
   - [x] Refactor `ConversationHistory.tsx` to fetch initial lists from GET `/api/conversations`.
+- [x] Header UI Adjustments
+  - [x] Modify `src/components/layout/Header.tsx` to remove the notification bell, write "Admin" instead of the name and role, and show a blank profile avatar placeholder.
+  - [x] Modify `src/components/faq-management/FAQHeader.tsx` to apply identical header cleanups (remove bell, change user details to "Admin", and show a blank avatar placeholder).
 - [x] Verify conversations integration works correctly.
