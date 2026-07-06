@@ -76,8 +76,8 @@ export async function getConversations() {
     if (!existing) {
       grouped.set(tid, chatItem);
     } else {
-      const existingTime = existing.updatedAt?.seconds || existing.updatedAt?._seconds || 0;
-      const newTime = chatItem.updatedAt?.seconds || chatItem.updatedAt?._seconds || 0;
+      const existingTime = (existing as any).updatedAt?.seconds || (existing as any).updatedAt?._seconds || 0;
+      const newTime = (chatItem as any).updatedAt?.seconds || (chatItem as any).updatedAt?._seconds || 0;
       if (newTime > existingTime) {
         grouped.set(tid, chatItem);
       }
