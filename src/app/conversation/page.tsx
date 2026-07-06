@@ -18,6 +18,7 @@ export default function ConversationPage() {
   useState("");
   const [refresh, setRefresh] = useState(0);
   const [composerMessage, setComposerMessage] = useState("");
+  const [activeMobileTab, setActiveMobileTab] = useState<"chat" | "history" | "ai">("history");
 
   return (
     <ProtectedRoute>
@@ -35,12 +36,18 @@ export default function ConversationPage() {
           <ConversationHistory
             key={refresh}
             selectedConversation={selectedConversation}
-            onSelectConversation={(id) => {
+            onSelectConversation={(id, isExplicit) => {
               setSelectedConversation(id);
               setComposerMessage("");
+              if (isExplicit) {
+                setActiveMobileTab("chat");
+              }
             }}
+            isVisible={activeMobileTab === "history"}
           />
-          <section className="flex flex-1 flex-col bg-white min-w-0">
+          <section className={`flex-1 flex-col bg-white min-w-0 ${
+            activeMobileTab === "chat" ? "flex" : "hidden lg:flex"
+          }`}>
             <ChatWindow
               conversationId={selectedConversation}
               onLatestCustomerMessage={setLatestCustomerMessage}
@@ -58,10 +65,14 @@ export default function ConversationPage() {
             conversationId={selectedConversation}
             customerMessage={latestCustomerMessage}
             onInsertSuggestedResponse={setComposerMessage}
+            isVisible={activeMobileTab === "ai"}
           />
         </div>
 
-        <MobileConversationNav />
+        <MobileConversationNav 
+          activeTab={activeMobileTab} 
+          onTabChange={setActiveMobileTab} 
+        />
       </main>
     </>
     </ProtectedRoute>

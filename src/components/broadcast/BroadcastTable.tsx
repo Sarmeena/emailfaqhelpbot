@@ -231,13 +231,16 @@ export default function BroadcastTable() {
 
                     {/* Edit */}
 
-                    <Link
-                      href={`/broadcasts/edit?id=${item.id}`}
-                    >
-                      <button className="rounded-full p-2 hover:bg-gray-100">
-                        Edit
-                      </button>
-                    </Link>
+                    {/* Edit */}
+                    {item.status !== "Sent" && (
+                      <Link
+                        href={`/broadcasts/edit?id=${item.id}`}
+                      >
+                        <button className="rounded-full p-2 hover:bg-gray-100 text-gray-700 font-semibold text-sm">
+                          Edit
+                        </button>
+                      </Link>
+                    )}
 
                     {/* Duplicate */}
 
@@ -358,14 +361,20 @@ export default function BroadcastTable() {
             ) : item.status === "Scheduled" ? (
 
               <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
+                <div>
+                  <p className="italic text-gray-500">
+                    Waiting to send...
+                  </p>
+                  <p className="font-semibold text-gray-900 mt-1">
+                    {item.recipients}
+                  </p>
+                </div>
 
-                <p className="italic text-gray-500">
-                  Waiting to send...
-                </p>
-
-                <p className="font-semibold text-gray-900">
-                  {item.recipients}
-                </p>
+                <Link href={`/broadcasts/edit?id=${item.id}`}>
+                  <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
+                    Edit Schedule
+                  </button>
+                </Link>
 
               </div>
 

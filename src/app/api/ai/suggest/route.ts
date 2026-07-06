@@ -23,11 +23,15 @@ export async function POST(request: NextRequest) {
       confidence,
       sourceFAQs: matchingFAQs
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Suggestion API error:", error);
+    const isQuota = error?.message?.includes("quota") || error?.message?.includes("429") || error?.status === 429 || error?.code === 429;
+    const errorMsg = isQuota
+      ? "Gemini API rate limit or daily free quota exceeded. Please try again later or configure a custom API key in Settings."
+      : (error instanceof Error ? error.message : "Internal Server Error");
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal Server Error" },
-      { status: 550 }
+      { success: false, error: errorMsg },
+      { status: isQuota ? 429 : 550 }
     );
   }
 }

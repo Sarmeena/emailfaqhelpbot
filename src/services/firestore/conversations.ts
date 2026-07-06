@@ -15,6 +15,7 @@ import {
 import { Timestamp } from "firebase/firestore";
 
 import { db } from "../../lib/firebase";
+import { deriveThreadId } from "./requests";
 export interface Conversation {
   id?: string;
   customerName: string;
@@ -23,6 +24,8 @@ export interface Conversation {
   status: string;
   lastMessage: string;
   updatedAt?: any;
+  priority?: string;
+  requestId?: string;
 }
 
 export interface Message {
@@ -34,30 +37,101 @@ export interface Message {
 }
 
 export async function getConversations() {
-  const snapshot = await getDocs(
-    collection(db, "conversations")
-  );
+  const [convSnapshot, reqSnapshot] = await Promise.all([
+    getDocs(collection(db, "conversations")),
+    getDocs(collection(db, "requests")),
+  ]);
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Conversation[];
+  const requestsMapById = new Map();
+  const requestsMapByThread = new Map();
+
+  reqSnapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    requestsMapById.set(doc.id, data);
+    const tid = data.threadId || (data.customerEmail ? deriveThreadId(data.customerEmail) : "");
+    if (tid) {
+      requestsMapByThread.set(tid, data);
+    }
+  });
+
+  const grouped = new Map<string, any>();
+
+  convSnapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    const tid = doc.id.startsWith("THREAD-")
+      ? doc.id
+      : (data.threadId || (data.customerEmail ? deriveThreadId(data.customerEmail) : ""));
+    
+    if (!tid) return;
+
+    const reqData = requestsMapByThread.get(tid) || requestsMapById.get(doc.id) || {};
+    const chatItem = {
+      id: doc.id,
+      ...data,
+      priority: reqData.priority || "Medium",
+      requestId: reqData.requestId || "",
+    };
+
+    const existing = grouped.get(tid);
+    if (!existing) {
+      grouped.set(tid, chatItem);
+    } else {
+      const existingTime = existing.updatedAt?.seconds || existing.updatedAt?._seconds || 0;
+      const newTime = chatItem.updatedAt?.seconds || chatItem.updatedAt?._seconds || 0;
+      if (newTime > existingTime) {
+        grouped.set(tid, chatItem);
+      }
+    }
+  });
+
+  return Array.from(grouped.values()).map((item) => {
+    const tid = item.id.startsWith("THREAD-")
+      ? item.id
+      : (item.threadId || (item.customerEmail ? deriveThreadId(item.customerEmail) : ""));
+    return {
+      ...item,
+      id: tid,
+    };
+  }) as Conversation[];
 }
 export async function getMessages(
   conversationId: string
 ) {
-  const q = query(
+  let ids = [conversationId];
+  if (conversationId.startsWith("THREAD-")) {
+    try {
+      const reqQuery = query(
+        collection(db, "requests"),
+        where("threadId", "==", conversationId)
+      );
+      const reqSnapshot = await getDocs(reqQuery);
+      reqSnapshot.docs.forEach((doc) => {
+        ids.push(doc.id);
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  const msgQuery = query(
     collection(db, "messages"),
-    where("conversationId", "==", conversationId),
-    orderBy("createdAt")
+    where("conversationId", "in", ids)
   );
 
-  const snapshot = await getDocs(q);
+  const snapshot = await getDocs(msgQuery);
 
-  return snapshot.docs.map((doc) => ({
+  const messages = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
   })) as Message[];
+
+  messages.sort((a: any, b: any) => {
+    const aTime = a.createdAt?.seconds || a.createdAt?._seconds || 0;
+    const bTime = b.createdAt?.seconds || b.createdAt?._seconds || 0;
+    return aTime - bTime;
+  });
+
+  return messages;
 }
 export async function sendMessage(
   conversationId: string,
@@ -95,10 +169,23 @@ export async function sendMessage(
     });
 
     // Also update requests collection in parallel
-    const requestRef = doc(db, "requests", conversationId);
-    await updateDoc(requestRef, {
-      status,
-    });
+    const q = query(
+      collection(db, "requests"),
+      where("threadId", "==", conversationId)
+    );
+    const querySnapshot = await getDocs(q);
+    const updatePromises = querySnapshot.docs.map((d) =>
+      updateDoc(doc(db, "requests", d.id), { status })
+    );
+    await Promise.all(updatePromises);
+
+    // Fallback direct update (legacy)
+    try {
+      const requestRef = doc(db, "requests", conversationId);
+      await updateDoc(requestRef, {
+        status,
+      });
+    } catch (err) {}
   } catch (err) {
     console.error("Error updating conversation/request status details:", err);
   }
@@ -108,10 +195,55 @@ export function subscribeToMessages(
   conversationId: string,
   callback: (messages: Message[]) => void
 ) {
+  if (conversationId.startsWith("THREAD-")) {
+    const reqQuery = query(
+      collection(db, "requests"),
+      where("threadId", "==", conversationId)
+    );
+    
+    let unsubscribeReqs = () => {};
+    let unsubscribeMsgs = () => {};
+    
+    unsubscribeReqs = onSnapshot(reqQuery, (reqSnapshot) => {
+      const ids = [conversationId];
+      reqSnapshot.docs.forEach((doc) => {
+        ids.push(doc.id);
+      });
+      
+      unsubscribeMsgs();
+      
+      const msgQuery = query(
+        collection(db, "messages"),
+        where("conversationId", "in", ids)
+      );
+      
+      unsubscribeMsgs = onSnapshot(msgQuery, (msgSnapshot) => {
+        const messages = msgSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Message[];
+        
+        messages.sort((a: any, b: any) => {
+          const aTime = a.createdAt?.seconds || a.createdAt?._seconds || 0;
+          const bTime = b.createdAt?.seconds || b.createdAt?._seconds || 0;
+          return aTime - bTime;
+        });
+        
+        callback(messages);
+      });
+    }, (err) => {
+      console.error("Error in subscribeToMessages requests listener:", err);
+    });
+    
+    return () => {
+      unsubscribeReqs();
+      unsubscribeMsgs();
+    };
+  }
+
   const q = query(
     collection(db, "messages"),
-    where("conversationId", "==", conversationId),
-    orderBy("createdAt")
+    where("conversationId", "==", conversationId)
   );
 
   return onSnapshot(q, (snapshot) => {
@@ -119,6 +251,12 @@ export function subscribeToMessages(
       id: doc.id,
       ...doc.data(),
     })) as Message[];
+
+    messages.sort((a: any, b: any) => {
+      const aTime = a.createdAt?.seconds || a.createdAt?._seconds || 0;
+      const bTime = b.createdAt?.seconds || b.createdAt?._seconds || 0;
+      return aTime - bTime;
+    });
 
     callback(messages);
   });
@@ -128,18 +266,5 @@ export function subscribeMessages(
   conversationId: string,
   callback: (messages: Message[]) => void
 ) {
-  const q = query(
-    collection(db, "messages"),
-    where("conversationId", "==", conversationId),
-    orderBy("createdAt")
-  );
-
-  return onSnapshot(q, (snapshot) => {
-    const messages = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Message[];
-
-    callback(messages);
-  });
+  return subscribeToMessages(conversationId, callback);
 }

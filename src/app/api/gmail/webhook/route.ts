@@ -117,11 +117,18 @@ export async function POST(request: NextRequest) {
     const status = escalated ? "Open" : "In Progress";
 
     // Always generate reply using Gemini AI
-    const reply = await generateReply(body, matchingFAQs);
+    let reply = "";
+    try {
+      reply = await generateReply(body, matchingFAQs);
+    } catch (e) {
+      console.error("Gemini API Error in Webhook, using fallback reply:", e);
+      reply = `Thank you for contacting us. We have received your message regarding this issue. A customer support agent has been notified and will assist you directly in this thread shortly.`;
+    }
 
     // Save parallel details in Firestore
     const requestDocRef = doc(collection(db, "requests"));
     const docId = requestDocRef.id;
+    const conversationId = threadId;
 
     await setDoc(requestDocRef, {
       requestId,
@@ -139,24 +146,25 @@ export async function POST(request: NextRequest) {
       createdAt: serverTimestamp(),
     });
 
-    await setDoc(doc(db, "conversations", docId), {
+    await setDoc(doc(db, "conversations", conversationId), {
       customerName: fromName || fromEmail,
       customerEmail: fromEmail,
       subject,
       status,
       lastMessage: reply.slice(0, 100) + "...",
       updatedAt: serverTimestamp(),
-    });
+      threadId,
+    }, { merge: true });
 
     await addDoc(collection(db, "messages"), {
-      conversationId: docId,
+      conversationId: conversationId,
       sender: fromName || fromEmail,
       message: body,
       createdAt: serverTimestamp(),
     });
 
     await addDoc(collection(db, "messages"), {
-      conversationId: docId,
+      conversationId: conversationId,
       sender: "AI Assistant",
       message: reply,
       createdAt: serverTimestamp(),

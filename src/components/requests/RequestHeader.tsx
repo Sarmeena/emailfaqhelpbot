@@ -2,13 +2,20 @@
 
 import Link from "next/link";
 import { Menu, Plus, User, ChevronDown } from "lucide-react";
+import { useSidebar } from "../../context/SidebarContext";
 
 export default function RequestHeader() {
+  const { open } = useSidebar();
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
       {/* Left */}
       <div className="flex items-center gap-3">
-        <button className="md:hidden">
+        <button 
+          onClick={open}
+          className="md:hidden"
+          aria-label="Open Sidebar Menu"
+        >
           <Menu className="h-6 w-6 text-blue-700" />
         </button>
 

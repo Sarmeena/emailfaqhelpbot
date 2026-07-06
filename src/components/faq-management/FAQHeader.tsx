@@ -1,8 +1,11 @@
 "use client";
 
 import { Menu, ChevronDown, User } from "lucide-react";
+import { useSidebar } from "../../context/SidebarContext";
 
 export default function FAQHeader() {
+  const { open } = useSidebar();
+
   return (
     <header className="fixed top-0 left-0 right-0 md:left-64 z-50 h-16 bg-white border-b shadow-sm">
       <div className="flex h-16 items-center justify-between px-4 md:px-8">
@@ -11,8 +14,12 @@ export default function FAQHeader() {
         <div className="flex items-center gap-4">
 
           {/* Mobile Menu */}
-          <button className="rounded-lg p-2 hover:bg-gray-100 lg:hidden">
-            <Menu size={22} />
+          <button 
+            onClick={open}
+            className="rounded-lg p-2 hover:bg-gray-100 md:hidden"
+            aria-label="Open Sidebar Menu"
+          >
+            <Menu size={22} className="text-blue-700" />
           </button>
 
           <h1 className="text-2xl font-bold text-gray-900">

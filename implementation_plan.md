@@ -1,40 +1,48 @@
-# Implementation Plan - Conversations Sidebar Link and Backend Route
+# Edit Draft & Scheduled Broadcasts Later
 
-We will add a "Conversations" link to the Sidebar, connect it to the existing `/conversation` screen, and build a Next.js API endpoint to handle fetching lists and submitting messages.
+This plan details the changes to the broadcasts dashboard and edit flow to enable editing of both draft and scheduled broadcasts, allowing updates to be saved back to Firestore with their scheduled state.
 
 ## Proposed Changes
 
-### Component 1: Sidebar Link Addition
+### Component: Broadcast Footer
 
-#### [MODIFY] [Sidebar.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/layout/Sidebar.tsx)
-* Add `MessageSquare` from `lucide-react` to imports.
-* Add a `Conversations` item to the `menu` array pointing to `/conversation`.
-
----
-
-### Component 2: Conversations Backend Route
-
-#### [NEW] [route.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/conversations/route.ts)
-* Build Next.js App Router API route mapping `GET` and `POST` methods.
-* `GET` returns a list of conversations (from Firestore `conversations` collection) if no query params are present.
-* `POST` receives `{ conversationId, sender, message }` in request body and saves it to Firestore messages collection using existing database helpers.
+#### [MODIFY] [BroadcastFooter.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/broadcast/BroadcastFooter.tsx)
+- Add a `status` prop to `BroadcastFooterProps`.
+- Dynamically render the secondary action button text. If `status === "Scheduled"`, change the text from `"Save Draft"` to `"Schedule Broadcast"`, while retaining `"Save Draft"` for other statuses.
 
 ---
 
-### Component 3: Conversation Components Integration
+### Page: Edit Broadcast Client
 
-#### [MODIFY] [ChatComposer.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ChatComposer.tsx)
-* Replace direct client-side Firestore `sendMessage` SDK call with a POST fetch request to `/api/conversations`.
+#### [MODIFY] [EditBroadcastClient.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/broadcasts/edit/EditBroadcastClient.tsx)
+- Implement a unified `handleSave()` function (passed as `onSaveDraft` to the footer) that saves the broadcast.
+- The `handleSave()` function will check the selected `status` from settings:
+  - If `status === "Scheduled"`, it saves the document with `"Scheduled"`, `scheduleDate`, and `scheduleTime` fields preserved.
+  - Otherwise, it defaults to saving as `"Draft"`.
+- Pass the current `status` state to the `<BroadcastFooter />` component so it can adapt dynamically.
 
-#### [MODIFY] [ConversationHistory.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/notifications/conversation/ConversationHistory.tsx)
-* Replace direct client-side Firestore `getConversations` query with a GET fetch request to `/api/conversations`.
+---
+
+### Component: Broadcast Table
+
+#### [MODIFY] [BroadcastTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/broadcast/BroadcastTable.tsx)
+- Hide the "Edit" button for broadcasts that have already been sent (`status === "Sent"`).
+- In the mobile card layout section of the table component, render an **"Edit Schedule"** action button for broadcasts with `"Scheduled"` status, enabling scheduled campaigns to be managed on mobile screens.
+
+---
+
+### Page: Broadcasts Listing
+
+#### [MODIFY] [page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/broadcasts/page.tsx)
+- Fix the desktop/mobile view rendering bug: remove the duplicate/mock `<BroadcastMobileCards />` element, and render `<BroadcastTable />` without wrappers. This ensures that the real Firestore-backed list is responsive and renders on all devices.
 
 ---
 
 ## Verification Plan
 
 ### Manual Verification
-1. Open dashboard page. Check if the **Conversations** link is present in the sidebar.
-2. Click **Conversations** and verify that it loads the inbox screen `/conversation` and changes active navigation highlight styles.
-3. Verify that the list of chats loads correctly (making a GET request to `/api/conversations`).
-4. Type a response message in the Chat Composer, select send, and verify that the message is submitted successfully through the backend API POST route.
+- Navigate to the **Broadcasts** page.
+- Ensure the table loads real data from Firestore on both mobile and desktop resolutions.
+- Click **Edit** on a **Draft** broadcast. Change settings to "Scheduled" and select a date/time. Click **Schedule Broadcast** in the footer and confirm it updates to "Scheduled" in the dashboard list.
+- Click **Edit** (or **Edit Schedule** on mobile) on a **Scheduled** broadcast. Verify the date/time inputs are populated with the saved values. Make changes and save to confirm updates.
+- Verify that a broadcast with status **Sent** does not display an "Edit" button.

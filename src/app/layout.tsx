@@ -1,6 +1,7 @@
 import "./globals.css";
 
 import { AuthProvider } from "../context/AuthContext";
+import { SidebarProvider } from "../context/SidebarContext";
 
 export const metadata = {
   title: "Email FAQ Help Bot",
@@ -17,9 +18,9 @@ export default function RootLayout({
       <body>
 
         <AuthProvider>
-
-          {children}
-
+          <SidebarProvider>
+            {children}
+          </SidebarProvider>
         </AuthProvider>
 
       </body>

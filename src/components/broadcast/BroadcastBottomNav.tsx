@@ -32,7 +32,7 @@ export default function BroadcastBottomNav() {
         />
 
         <NavItem
-          href="/broadcast"
+          href="/broadcasts"
           active
           icon={<Send className="h-5 w-5" />}
           label="Broadcast"

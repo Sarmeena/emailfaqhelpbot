@@ -5,7 +5,7 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 
 interface ChatComposerProps {
@@ -56,10 +56,21 @@ export default function ChatComposer({
     }
     async function loadRequest() {
       try {
-        const docRef = doc(db, "requests", conversationId);
-        const snapshot = await getDoc(docRef);
-        if (snapshot.exists()) {
-          const data = snapshot.data();
+        // Query requests and sort in-memory to bypass composite index requirement
+        const q = query(
+          collection(db, "requests"),
+          where("threadId", "==", conversationId)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const docs = [...querySnapshot.docs];
+          docs.sort((a: any, b: any) => {
+            const aTime = a.data().createdAt?.seconds || a.data().createdAt?._seconds || 0;
+            const bTime = b.data().createdAt?.seconds || b.data().createdAt?._seconds || 0;
+            return bTime - aTime;
+          });
+          const data = docs[0].data();
           setRequestDetails({
             customerEmail: data.customerEmail,
             subject: data.subject,
@@ -69,7 +80,22 @@ export default function ChatComposer({
           });
           setSendGmailEmail(data.source === "Gmail");
         } else {
-          setRequestDetails(null);
+          // Fallback direct get (legacy)
+          const docRef = doc(db, "requests", conversationId);
+          const snapshot = await getDoc(docRef);
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            setRequestDetails({
+              customerEmail: data.customerEmail,
+              subject: data.subject,
+              gmailMessageId: data.gmailMessageId,
+              gmailThreadId: data.gmailThreadId,
+              source: data.source,
+            });
+            setSendGmailEmail(data.source === "Gmail");
+          } else {
+            setRequestDetails(null);
+          }
         }
       } catch (err) {
         console.error("Error loading request details:", err);

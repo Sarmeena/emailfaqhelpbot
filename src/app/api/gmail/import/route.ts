@@ -33,12 +33,18 @@ export async function POST(request: NextRequest) {
     if (escalated) {
       reply = `Thank you for contacting us (Ref: ${requestId}).\n\nYour message regarding "${subject}" has been received. Because this query is sensitive, complex, or requires account-level details, I have escalated this issue to a human support agent. A team member will reply to you directly in this thread shortly.`;
     } else {
-      reply = await generateReply(body, matchingFAQs);
+      try {
+        reply = await generateReply(body, matchingFAQs);
+      } catch (e) {
+        console.error("Gemini API Error in Import, using fallback reply:", e);
+        reply = `Thank you for contacting us. We have received your message regarding this issue. A customer support agent has been notified and will assist you directly in this thread shortly.`;
+      }
     }
 
     // Allocate unified ID to link Requests and Conversations
     const requestDocRef = doc(collection(db, "requests"));
     const docId = requestDocRef.id;
+    const conversationId = threadId;
 
     // Create request
     await setDoc(requestDocRef, {
@@ -57,19 +63,20 @@ export async function POST(request: NextRequest) {
       createdAt: serverTimestamp(),
     });
 
-    // Create parallel conversation
-    await setDoc(doc(db, "conversations", docId), {
+    // Create parallel conversation (grouped by threadId)
+    await setDoc(doc(db, "conversations", conversationId), {
       customerName: fromName || from,
       customerEmail: from,
       subject,
       status,
       lastMessage: reply.slice(0, 100) + "...",
       updatedAt: serverTimestamp(),
-    });
+      threadId,
+    }, { merge: true });
 
     // Add inbound message
     await addDoc(collection(db, "messages"), {
-      conversationId: docId,
+      conversationId: conversationId,
       sender: fromName || from,
       message: body,
       createdAt: serverTimestamp(),
@@ -77,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Add automated reply message
     await addDoc(collection(db, "messages"), {
-      conversationId: docId,
+      conversationId: conversationId,
       sender: "AI Assistant",
       message: reply,
       createdAt: serverTimestamp(),

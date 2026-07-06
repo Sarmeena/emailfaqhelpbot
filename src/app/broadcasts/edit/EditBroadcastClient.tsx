@@ -71,15 +71,17 @@ export default function EditBroadcastClient() {
         loadBroadcast();
     }, [id]);
 
-    async function handleSaveDraft() {
+    async function handleSave() {
         try {
+            const targetStatus = status === "Sent" ? "Draft" : status;
+
             if (id) {
                 await updateBroadcast(id, {
                     subject,
                     content,
                     category,
                     recipients,
-                    status: "Draft",
+                    status: targetStatus,
                     scheduleDate,
                     scheduleTime,
                 });
@@ -89,7 +91,7 @@ export default function EditBroadcastClient() {
                     content,
                     category,
                     recipients,
-                    status: "Draft",
+                    status: targetStatus,
                     openRate: 0,
                     replyRate: 0,
                     scheduleDate,
@@ -97,12 +99,12 @@ export default function EditBroadcastClient() {
                 } as any);
             }
 
-            alert("Draft saved successfully.");
+            alert(`${targetStatus === "Scheduled" ? "Broadcast scheduled" : "Draft saved"} successfully.`);
 
             router.push("/broadcasts");
         } catch (error) {
             console.error(error);
-            alert("Failed to save draft.");
+            alert("Failed to save broadcast.");
         }
     }
 
@@ -252,8 +254,9 @@ export default function EditBroadcastClient() {
                         {/* Footer */}
                         <BroadcastFooter
                             onCancel={handleCancel}
-                            onSaveDraft={handleSaveDraft}
+                            onSaveDraft={handleSave}
                             onSend={handleSend}
+                            status={status}
                         />
                     </div>
                 </main>

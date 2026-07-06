@@ -12,12 +12,14 @@ interface ConversationAIPanelProps {
   conversationId: string;
   customerMessage: string;
   onInsertSuggestedResponse: (text: string) => void;
+  isVisible?: boolean;
 }
 
 export default function ConversationAIPanel({
   conversationId,
   customerMessage,
   onInsertSuggestedResponse,
+  isVisible = false,
 }: ConversationAIPanelProps) {
   const [suggestion, setSuggestion] = useState("");
   const [confidence, setConfidence] = useState(0);
@@ -139,7 +141,9 @@ export default function ConversationAIPanel({
   }
 
   return (
-    <aside className="hidden w-96 shrink-0 flex-col border-l bg-gray-50 xl:flex">
+    <aside className={`w-full xl:w-96 shrink-0 flex-col border-l bg-gray-50 ${
+      isVisible ? "flex" : "hidden xl:flex"
+    }`}>
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-white p-4 shrink-0">
         <div className="flex items-center gap-2">

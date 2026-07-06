@@ -13,7 +13,7 @@ export default function FAQMobileNav() {
     <nav className="fixed bottom-0 left-0 z-50 flex h-20 w-full items-center justify-around rounded-t-xl border-t border-outline-variant bg-surface px-4 py-2 shadow-lg lg:hidden">
       {/* Home */}
       <Link
-        href="/"
+        href="/dashboard"
         className="flex flex-col items-center justify-center text-on-surface-variant transition hover:bg-surface-container active:scale-90"
       >
         <Home className="h-6 w-6" />
@@ -22,7 +22,7 @@ export default function FAQMobileNav() {
 
       {/* FAQs (Active) */}
       <Link
-        href="/faq-management"
+        href="/faqs"
         className="flex flex-col items-center justify-center rounded-2xl bg-primary-container px-4 py-1 text-on-primary-container active:scale-90"
       >
         <CircleHelp className="h-6 w-6 fill-current" />

@@ -43,15 +43,8 @@ export default function BroadcastPage() {
             {/* Stats */}
             <BroadcastStats />
 
-            {/* Desktop */}
-            <div className="hidden lg:block">
-              <BroadcastTable />
-            </div>
-
-            {/* Mobile */}
-            <div className="lg:hidden">
-              <BroadcastMobileCards />
-            </div>
+            {/* Responsive Table & Mobile Cards */}
+            <BroadcastTable />
           </main>
         </div>
       </div>

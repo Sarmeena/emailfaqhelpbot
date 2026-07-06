@@ -51,7 +51,9 @@ export default function CreateBroadcastRecipients({
   recipientsList,
   setRecipientsList,
 }: CreateBroadcastRecipientsProps) {
+  const [predefinedGroups, setPredefinedGroups] = useState<Record<string, Recipient[]>>(MOCK_GROUPS);
   const [selectedGroup, setSelectedGroup] = useState("");
+  const [newGroupName, setNewGroupName] = useState("");
   const [manualName, setManualName] = useState("");
   const [manualEmail, setManualEmail] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,10 +64,48 @@ export default function CreateBroadcastRecipients({
   // Group Select handler
   const handleGroupChange = (groupName: string) => {
     setSelectedGroup(groupName);
-    if (groupName && MOCK_GROUPS[groupName]) {
-      setRecipientsList(MOCK_GROUPS[groupName]);
+  };
+
+  const handleReplaceWithGroup = () => {
+    if (selectedGroup && predefinedGroups[selectedGroup]) {
+      setRecipientsList(predefinedGroups[selectedGroup]);
       setErrorMessage("");
     }
+  };
+
+  const handleAppendWithGroup = () => {
+    if (selectedGroup && predefinedGroups[selectedGroup]) {
+      const groupRecipients = predefinedGroups[selectedGroup];
+      setRecipientsList(prev => {
+        const filtered = groupRecipients.filter(newRec => 
+          !prev.some(existing => existing.email.toLowerCase() === newRec.email.toLowerCase())
+        );
+        return [...prev, ...filtered];
+      });
+      setErrorMessage("");
+    }
+  };
+
+  // Save current list as custom predefined group
+  const handleSaveCurrentListAsGroup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroupName.trim()) {
+      setErrorMessage("Group name is required to save.");
+      return;
+    }
+    if (recipientsList.length === 0) {
+      setErrorMessage("Cannot save an empty list as a group.");
+      return;
+    }
+    const name = newGroupName.trim();
+    setPredefinedGroups(prev => ({
+      ...prev,
+      [name]: [...recipientsList]
+    }));
+    setSelectedGroup(name);
+    setNewGroupName("");
+    setErrorMessage("");
+    alert(`Successfully saved group "${name}" with ${recipientsList.length} recipients!`);
   };
 
   // Manual Add handler
@@ -155,6 +195,13 @@ export default function CreateBroadcastRecipients({
         if (parsed.length === 0) {
           setErrorMessage("No valid recipients found in CSV. Format: name,email");
         } else {
+          const groupName = file.name;
+          setPredefinedGroups(prev => ({
+            ...prev,
+            [groupName]: parsed
+          }));
+          setSelectedGroup(groupName);
+
           setRecipientsList(prev => {
             // Filter out existing duplicates
             const filteredNew = parsed.filter(newRec => 
@@ -163,7 +210,7 @@ export default function CreateBroadcastRecipients({
             return [...prev, ...filteredNew];
           });
           setErrorMessage("");
-          alert(`Successfully imported ${parsed.length} recipients!`);
+          alert(`Successfully imported ${parsed.length} recipients and added group "${groupName}"!`);
         }
       } catch (err) {
         console.error("Error reading CSV", err);
@@ -211,23 +258,43 @@ export default function CreateBroadcastRecipients({
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Recipient Collection Dropdown */}
-        <div className="space-y-2">
-          <label className="block text-label-md font-medium text-on-surface-variant">
-            Select Recipient Collection
-          </label>
-          <select
-            value={selectedGroup}
-            onChange={(e) => handleGroupChange(e.target.value)}
-            className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary"
-          >
-            <option value="">-- Choose Predefined Group --</option>
-            {Object.keys(MOCK_GROUPS).map((group) => (
-              <option key={group} value={group}>
-                {group} ({MOCK_GROUPS[group].length} users)
-              </option>
-            ))}
-          </select>
+        {/* Recipient Collection Dropdown & Actions */}
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <label className="block text-label-md font-medium text-on-surface-variant">
+              Select Recipient Collection
+            </label>
+            <select
+              value={selectedGroup}
+              onChange={(e) => handleGroupChange(e.target.value)}
+              className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary"
+            >
+              <option value="">-- Choose Predefined Group --</option>
+              {Object.keys(predefinedGroups).map((group) => (
+                <option key={group} value={group}>
+                  {group} ({predefinedGroups[group].length} users)
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedGroup && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleReplaceWithGroup}
+                className="flex-1 text-center py-2 px-3 rounded-lg border border-primary text-primary text-body-sm font-semibold hover:bg-primary/5 transition active:scale-95 cursor-pointer"
+              >
+                Replace List
+              </button>
+              <button
+                type="button"
+                onClick={handleAppendWithGroup}
+                className="flex-1 text-center py-2 px-3 rounded-lg bg-primary text-on-primary text-body-sm font-semibold hover:bg-primary-container transition active:scale-95 cursor-pointer"
+              >
+                Append to List
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Upload Recipients CSV */}
@@ -237,7 +304,7 @@ export default function CreateBroadcastRecipients({
           </label>
           <div 
             onClick={() => fileInputRef.current?.click()} 
-            className="flex items-center justify-center gap-3 cursor-pointer rounded-lg border border-dashed border-outline-variant bg-surface-container-low p-3 hover:bg-surface-container transition-all"
+            className="flex items-center justify-center gap-3 cursor-pointer rounded-lg border border-dashed border-outline-variant bg-surface-container-low p-3 hover:bg-surface-container transition-all h-[46px]"
           >
             <Upload className="h-5 w-5 text-primary" />
             <span className="text-body-sm text-on-surface-variant font-medium">
@@ -253,6 +320,28 @@ export default function CreateBroadcastRecipients({
           </div>
         </div>
       </div>
+
+      {/* Save List as Predefined Group */}
+      <form onSubmit={handleSaveCurrentListAsGroup} className="space-y-2 border-t border-outline-variant pt-4">
+        <label className="block text-label-md font-medium text-on-surface-variant">
+          Save Current Recipient List as a Predefined Group
+        </label>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Enter custom group name..."
+            value={newGroupName}
+            onChange={(e) => setNewGroupName(e.target.value)}
+            className="flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest p-3 text-body-md text-on-surface outline-none transition-all focus:ring-2 focus:ring-primary"
+          />
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary text-primary px-5 py-3 text-label-md font-label-md hover:bg-primary/5 transition active:scale-95 shrink-0"
+          >
+            <span>Save Group</span>
+          </button>
+        </div>
+      </form>
 
       {/* Manual Add Form */}
       <form onSubmit={handleManualAdd} className="space-y-2 border-t border-outline-variant pt-4">

@@ -43,8 +43,8 @@ export default function CreateBroadcastPage() {
   const [previewText, setPreviewText] = useState("");
   const [content, setContent] = useState("");
   
-  // Seed with 10 fake recipients
-  const [recipientsList, setRecipientsList] = useState<Recipient[]>(DEFAULT_RECIPIENTS);
+  // Initialize with empty recipients list
+  const [recipientsList, setRecipientsList] = useState<Recipient[]>([]);
 
   // Sending Simulation State
   const [showSendingModal, setShowSendingModal] = useState(false);

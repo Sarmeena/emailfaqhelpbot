@@ -4,12 +4,14 @@ interface BroadcastFooterProps {
   onCancel: () => void;
   onSaveDraft: () => void;
   onSend: () => void;
+  status?: "Draft" | "Scheduled" | "Sent";
 }
 
 export default function BroadcastFooter({
   onCancel,
   onSaveDraft,
   onSend,
+  status,
 }: BroadcastFooterProps) {
   return (
     <div className="sticky bottom-0 z-40 border-t border-gray-200 bg-white">
@@ -30,7 +32,7 @@ export default function BroadcastFooter({
           onClick={onSaveDraft}
           className="rounded-xl border border-blue-600 px-6 py-3 text-sm font-medium text-blue-600 transition hover:bg-blue-50 active:scale-95"
         >
-          Save Draft
+          {status === "Scheduled" ? "Schedule Broadcast" : "Save Draft"}
         </button>
 
         {/* Send */}

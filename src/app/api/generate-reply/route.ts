@@ -22,18 +22,15 @@ export async function POST(request: NextRequest) {
       success: true,
       reply,
     });
-  } catch (error) {
-    console.error(error);
-
+  } catch (error: any) {
+    console.error("AI Generate Reply API error:", error);
+    const isQuota = error?.message?.includes("quota") || error?.message?.includes("429") || error?.status === 429 || error?.code === 429;
+    const errorMsg = isQuota
+      ? "Gemini API rate limit or daily free quota exceeded. Please try again later or configure a custom API key in Settings."
+      : (error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown error",
-      },
-      { status: 500 }
+      { success: false, error: errorMsg },
+      { status: isQuota ? 429 : 500 }
     );
   }
 }

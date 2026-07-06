@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
-import { MoreVertical, CheckCircle2, ShieldAlert } from "lucide-react";
+import { MoreVertical, CheckCircle2, ShieldAlert, Menu } from "lucide-react";
+import { useSidebar } from "../../../context/SidebarContext";
 
 interface ConversationHeaderProps {
   conversationId: string;
@@ -11,6 +12,7 @@ interface ConversationHeaderProps {
 }
 
 export default function ConversationHeader({ conversationId, onStatusUpdated }: ConversationHeaderProps) {
+  const { open } = useSidebar();
   const [customerName, setCustomerName] = useState("");
   const [status, setStatus] = useState("Open");
   const [priority, setPriority] = useState("Medium");
@@ -35,11 +37,27 @@ export default function ConversationHeader({ conversationId, onStatusUpdated }: 
           setStatus(data.status || "Open");
         }
 
-        // Fetch priority from requests
-        const reqRef = doc(db, "requests", conversationId);
-        const reqSnap = await getDoc(reqRef);
-        if (reqSnap.exists()) {
-          setPriority(reqSnap.data().priority || "Medium");
+        // Fetch priority from requests (by threadId)
+        const q = query(
+          collection(db, "requests"),
+          where("threadId", "==", conversationId)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const docs = [...querySnapshot.docs];
+          docs.sort((a: any, b: any) => {
+            const aTime = a.data().createdAt?.seconds || a.data().createdAt?._seconds || 0;
+            const bTime = b.data().createdAt?.seconds || b.data().createdAt?._seconds || 0;
+            return bTime - aTime;
+          });
+          setPriority(docs[0].data().priority || "Medium");
+        } else {
+          // Fallback direct get (legacy)
+          const reqRef = doc(db, "requests", conversationId);
+          const reqSnap = await getDoc(reqRef);
+          if (reqSnap.exists()) {
+            setPriority(reqSnap.data().priority || "Medium");
+          }
         }
       } catch (err) {
         console.error("Error loading header details:", err);
@@ -57,9 +75,25 @@ export default function ConversationHeader({ conversationId, onStatusUpdated }: 
       await updateDoc(doc(db, "conversations", conversationId), {
         status: newStatus,
       });
-      await updateDoc(doc(db, "requests", conversationId), {
-        status: newStatus,
-      });
+
+      // Update all requests sharing the same threadId
+      const q = query(
+        collection(db, "requests"),
+        where("threadId", "==", conversationId)
+      );
+      const querySnapshot = await getDocs(q);
+      const updatePromises = querySnapshot.docs.map((d) =>
+        updateDoc(doc(db, "requests", d.id), { status: newStatus })
+      );
+      await Promise.all(updatePromises);
+
+      // Fallback direct update (legacy)
+      try {
+        await updateDoc(doc(db, "requests", conversationId), {
+          status: newStatus,
+        });
+      } catch (e) {}
+
       if (onStatusUpdated) onStatusUpdated();
       alert(`Ticket status marked as ${newStatus}`);
     } catch (err) {
@@ -86,7 +120,16 @@ export default function ConversationHeader({ conversationId, onStatusUpdated }: 
     <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
       {/* Left Section */}
       <div className="flex items-center gap-4 min-w-0">
-        <div>
+        {/* Hamburger Menu on Mobile */}
+        <button
+          onClick={open}
+          className="rounded-lg p-2 hover:bg-gray-100 md:hidden shrink-0"
+          aria-label="Open Sidebar Menu"
+        >
+          <Menu className="h-6 w-6 text-blue-700" />
+        </button>
+
+        <div className="min-w-0">
           <h2 className="text-base font-bold text-gray-900 truncate">
             {loading ? "Loading..." : customerName || "Customer"}
           </h2>

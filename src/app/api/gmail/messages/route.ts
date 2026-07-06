@@ -23,11 +23,18 @@ async function importEmailMessage(
   const matchingFAQs = await searchFAQs(body);
 
   // Always generate reply using Gemini AI
-  const reply = await generateReply(body, matchingFAQs);
+  let reply = "";
+  try {
+    reply = await generateReply(body, matchingFAQs);
+  } catch (e) {
+    console.error("Gemini API Error in Message sync, using fallback reply:", e);
+    reply = `Thank you for contacting us. We have received your message regarding this issue. A customer support agent has been notified and will assist you directly in this thread shortly.`;
+  }
 
   // Allocate unified ID to link Requests and Conversations
   const requestDocRef = doc(collection(db, "requests"));
   const docId = requestDocRef.id;
+  const conversationId = threadId;
 
   const containsSensitive = /refund|billing|charge|credit card|expired|locked|hacked|fraud|security|error 500/i.test(body + " " + subject);
   const hasNoFAQMatch = matchingFAQs.length === 0;
@@ -54,18 +61,19 @@ async function importEmailMessage(
   });
 
   // Create parallel conversation
-  await setDoc(doc(db, "conversations", docId), {
+  await setDoc(doc(db, "conversations", conversationId), {
     customerName: fromName || fromEmail,
     customerEmail: fromEmail,
     subject,
     status,
     lastMessage: reply.slice(0, 100) + "...",
     updatedAt: serverTimestamp(),
-  });
+    threadId,
+  }, { merge: true });
 
   // Add inbound message
   await addDoc(collection(db, "messages"), {
-    conversationId: docId,
+    conversationId: conversationId,
     sender: fromName || fromEmail,
     message: body,
     createdAt: serverTimestamp(),
@@ -73,7 +81,7 @@ async function importEmailMessage(
 
   // Add automated reply message
   await addDoc(collection(db, "messages"), {
-    conversationId: docId,
+    conversationId: conversationId,
     sender: "AI Assistant",
     message: reply,
     createdAt: serverTimestamp(),
