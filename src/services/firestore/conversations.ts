@@ -65,7 +65,7 @@ export async function getConversations() {
     if (!tid) return;
 
     const reqData = requestsMapByThread.get(tid) || requestsMapById.get(doc.id) || {};
-    const chatItem = {
+    const chatItem: any = {
       id: doc.id,
       ...data,
       priority: reqData.priority || "Medium",
