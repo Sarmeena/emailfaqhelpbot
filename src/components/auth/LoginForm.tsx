@@ -14,21 +14,20 @@ export default function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  setLoading(true);
-  setError("");
+    setLoading(true);
+    setError("");
 
-  try {
-    await login(email, password,rememberMe);
-
-    router.push("/dashboard");
-  } catch (err) {
-    setError("Invalid email or password.");
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      await login(email, password, rememberMe);
+      router.push("/dashboard");
+    } catch (err) {
+      setError("Invalid email or password.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">

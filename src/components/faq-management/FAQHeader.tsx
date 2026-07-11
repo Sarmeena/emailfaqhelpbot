@@ -2,9 +2,11 @@
 
 import { Menu, ChevronDown, User } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function FAQHeader() {
   const { open } = useSidebar();
+  const { user, role } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 md:left-64 z-50 h-16 bg-white border-b shadow-sm">
@@ -35,9 +37,14 @@ export default function FAQHeader() {
           <button className="hidden items-center gap-3 rounded-xl px-2 py-1 hover:bg-gray-100 md:flex">
 
             <div className="text-left">
-              <p className="text-sm font-bold text-gray-800">
-                Admin
+              <p className="text-sm font-bold text-gray-800 capitalize">
+                {role || "Viewer"}
               </p>
+              {user?.email && (
+                <p className="text-[10px] text-gray-500 font-medium">
+                  {user.email}
+                </p>
+              )}
             </div>
 
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 border border-gray-200">

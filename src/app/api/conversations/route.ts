@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getConversations, getMessages, sendMessage } from "../../../services/firestore/conversations";
+import { checkAuthAndRole } from "../../../utils/apiAuth";
 
 export async function GET(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin", "agent", "viewer"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const { searchParams } = new URL(request.url);
     const conversationId = searchParams.get("conversationId");
 
@@ -24,6 +29,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin", "agent"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const body = await request.json();
     const { conversationId, sender, message } = body;
 

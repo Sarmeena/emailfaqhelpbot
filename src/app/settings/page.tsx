@@ -9,7 +9,7 @@ import ProtectedRoute from "../../components/auth/ProtectedRoute";
 
 export default function SettingsPage() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["admin"]}>
       <div className="flex min-h-screen bg-gray-100">
         {/* Sidebar */}
         <Sidebar />

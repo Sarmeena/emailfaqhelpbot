@@ -11,7 +11,7 @@ import ProtectedRoute from "../../components/auth/ProtectedRoute";
 import { Suspense } from "react";
 export default function BroadcastPage() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["admin", "agent"]}>
       <div className="flex min-h-screen bg-gray-100">
         <Sidebar />
 

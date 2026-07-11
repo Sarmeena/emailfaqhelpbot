@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ProtectedRoute from "../../../../components/auth/ProtectedRoute";
 
 import {
   getRequest,
@@ -70,91 +71,96 @@ export default function EditRequestPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        Loading...
-      </div>
+      <ProtectedRoute allowedRoles={["admin", "agent"]}>
+        <div className="flex min-h-screen items-center justify-center">
+          Loading...
+        </div>
+      </ProtectedRoute>
     );
   }
 
   return (
-  <main className="min-h-screen bg-gray-100 p-6">
-    <div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow">
+    <ProtectedRoute allowedRoles={["admin", "agent"]}>
+      <main className="min-h-screen bg-gray-100 p-6">
 
-      <h1 className="mb-8 text-3xl font-bold">
-        Edit Request
-      </h1>
+        <div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow">
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6"
-      >
+          <h1 className="mb-8 text-3xl font-bold">
+            Edit Request
+          </h1>
 
-        <input
-          type="text"
-          placeholder="Customer Name"
-          value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
-          className="w-full rounded-lg border p-3"
-          required
-        />
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
 
-        <input
-          type="email"
-          placeholder="Customer Email"
-          value={customerEmail}
-          onChange={(e) => setCustomerEmail(e.target.value)}
-          className="w-full rounded-lg border p-3"
-          required
-        />
+            <input
+              type="text"
+              placeholder="Customer Name"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="w-full rounded-lg border p-3"
+              required
+            />
 
-        <input
-          type="text"
-          placeholder="Subject"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          className="w-full rounded-lg border p-3"
-          required
-        />
+            <input
+              type="email"
+              placeholder="Customer Email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              className="w-full rounded-lg border p-3"
+              required
+            />
 
-        <textarea
-          rows={5}
-          placeholder="Message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          className="w-full rounded-lg border p-3"
-          required
-        />
+            <input
+              type="text"
+              placeholder="Subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="w-full rounded-lg border p-3"
+              required
+            />
 
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-          className="w-full rounded-lg border p-3"
-        >
-          <option>Low</option>
-          <option>Medium</option>
-          <option>High</option>
-        </select>
+            <textarea
+              rows={5}
+              placeholder="Message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full rounded-lg border p-3"
+              required
+            />
 
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="w-full rounded-lg border p-3"
-        >
-          <option>Open</option>
-          <option>In Progress</option>
-          <option>Resolved</option>
-        </select>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              className="w-full rounded-lg border p-3"
+            >
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+            </select>
 
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-blue-700 py-3 font-semibold text-white hover:bg-blue-800"
-        >
-          Update Request
-        </button>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full rounded-lg border p-3"
+            >
+              <option>Open</option>
+              <option>In Progress</option>
+              <option>Resolved</option>
+            </select>
 
-      </form>
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-blue-700 py-3 font-semibold text-white hover:bg-blue-800"
+            >
+              Update Request
+            </button>
 
-    </div>
-  </main>
-);
+          </form>
+
+        </div>
+      </main>
+    </ProtectedRoute>
+  );
 }

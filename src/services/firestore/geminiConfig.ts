@@ -14,6 +14,10 @@ const CONFIG_DOC_PATH = ["settings", "gemini"] as const;
 /** Retrieve Gemini configuration details */
 export async function getGeminiConfig(): Promise<GeminiConfig | null> {
   try {
+    if (typeof window === "undefined") {
+      const { ensureServerAuth } = await import("../../utils/apiAuth");
+      await ensureServerAuth();
+    }
     const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
     const snapshot = await getDoc(docRef);
     if (snapshot.exists()) {
@@ -28,6 +32,10 @@ export async function getGeminiConfig(): Promise<GeminiConfig | null> {
 /** Save/Update Gemini config details */
 export async function saveGeminiConfig(config: Partial<GeminiConfig>): Promise<void> {
   try {
+    if (typeof window === "undefined") {
+      const { ensureServerAuth } = await import("../../utils/apiAuth");
+      await ensureServerAuth();
+    }
     const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
     const current = await getGeminiConfig();
     const newData = {

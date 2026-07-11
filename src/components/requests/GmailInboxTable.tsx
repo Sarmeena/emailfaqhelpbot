@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Mail, CheckCircle, RefreshCw, AlertTriangle, ArrowRight, ArrowLeft } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 interface GmailMessage {
   id: string;
@@ -15,6 +16,8 @@ interface GmailMessage {
 }
 
 export default function GmailInboxTable() {
+  const { role } = useAuth();
+  const isReadOnly = role === "viewer";
   const [messages, setMessages] = useState<GmailMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [importingId, setImportingId] = useState<string | null>(null);
@@ -141,10 +144,11 @@ export default function GmailInboxTable() {
                       ) : (
                         <button
                           onClick={() => handleImport(msg)}
-                          disabled={importingId !== null}
+                          disabled={importingId !== null || isReadOnly}
                           className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white hover:bg-blue-800 transition active:scale-95 disabled:opacity-60 shadow-sm"
+                          title={isReadOnly ? "Viewers cannot import tickets" : ""}
                         >
-                          {importingId === msg.id ? "Importing..." : "Import to Tickets"}
+                          {importingId === msg.id ? "Importing..." : isReadOnly ? "Import Restricted" : "Import to Tickets"}
                         </button>
                       )}
                     </td>

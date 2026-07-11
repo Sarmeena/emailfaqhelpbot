@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
+import { useAuth } from "../../../context/AuthContext";
 
 interface ChatComposerProps {
   conversationId: string;
@@ -23,6 +24,8 @@ export default function ChatComposer({
   messageValue,
   onMessageValueChange,
 }: ChatComposerProps) {
+  const { role } = useAuth();
+  const isReadOnly = role === "viewer";
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -206,7 +209,10 @@ export default function ChatComposer({
       <div className="mx-auto max-w-4xl">
         <div className="flex items-end gap-2 rounded-2xl border bg-gray-50 p-2 focus-within:ring-2 focus-within:ring-blue-500">
           {/* Attachment */}
-          <button className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-200 hover:text-blue-700">
+          <button 
+            disabled={isReadOnly}
+            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-200 hover:text-blue-700 disabled:opacity-50"
+          >
             <Paperclip size={20} />
           </button>
 
@@ -215,14 +221,15 @@ export default function ChatComposer({
             rows={1}
             value={message}
             onChange={(e) => handleMessageChange(e.target.value)}
-            placeholder="Type your response..."
-            className="max-h-32 min-h-11 flex-1 resize-none bg-transparent py-2 text-sm outline-none"
+            placeholder={isReadOnly ? "You have read-only access..." : "Type your response..."}
+            disabled={isReadOnly || sending}
+            className="max-h-32 min-h-11 flex-1 resize-none bg-transparent py-2 text-sm outline-none disabled:opacity-75"
           />
 
           {/* AI Suggest */}
           <button
             onClick={handleAISuggestion}
-            disabled={generating}
+            disabled={generating || isReadOnly}
             className="flex items-center gap-2 rounded-xl bg-blue-100 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-700 hover:text-white disabled:opacity-50"
           >
             <Sparkles size={18} />
@@ -234,7 +241,7 @@ export default function ChatComposer({
           {/* Send */}
           <button
             onClick={handleSend}
-            disabled={sending}
+            disabled={sending || isReadOnly}
             className="rounded-xl bg-blue-700 p-2 text-white transition hover:bg-blue-800 disabled:opacity-50"
           >
             <Send size={20} />

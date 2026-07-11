@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateReply } from "../../../services/ai/generateReply";
 import { searchFAQs } from "../../../services/firestore/faqs";
+import { checkAuthAndRole } from "../../../utils/apiAuth";
 
 export async function POST(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin", "agent", "viewer"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const { message } = await request.json();
 
     // Find matching FAQs

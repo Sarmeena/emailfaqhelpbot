@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
+import { useAuth } from "../../context/AuthContext";
 
 import Sidebar from "../../components/layout/Sidebar";
 import FAQHeader from "../../components/faq-management/FAQHeader";
@@ -13,6 +14,7 @@ import FAQMobileList from "../../components/faq-management/FAQMobileList";
 import FAQMobileNav from "../../components/faq-management/FAQMobileNav";
 
 export default function FAQManagementPage() {
+  const { role } = useAuth();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
@@ -52,13 +54,15 @@ export default function FAQManagementPage() {
                 View FAQ Portal
               </Link>
 
-              <Link
-                href="/faq/new"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-white font-semibold shadow hover:bg-blue-800 transition active:scale-95"
-              >
-                <Plus size={18} />
-                Add FAQ
-              </Link>
+              {role !== "viewer" && (
+                <Link
+                  href="/faq/new"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-white font-semibold shadow hover:bg-blue-800 transition active:scale-95"
+                >
+                  <Plus size={18} />
+                  Add FAQ
+                </Link>
+              )}
             </div>
 
           </div>

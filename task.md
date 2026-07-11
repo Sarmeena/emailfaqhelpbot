@@ -1,6 +1,6 @@
-# Tasks: Edit & Schedule Broadcasts
+# Tasks: Fix Gmail Configuration Loading Issue
 
-- `[x]` Update `BroadcastFooter.tsx` with dynamic status labels
-- `[x]` Update `EditBroadcastClient.tsx` to handle unified saving and status propagation
-- `[x]` Update `BroadcastTable.tsx` to conditionally display Edit button and support scheduled edits on mobile
-- `[x]` Update `broadcasts/page.tsx` to render `BroadcastTable` responsively without mock cards wrapper
+- `[x]` Update `src/services/firestore/gmailConfig.ts` to ensure server auth and add validation defaults.
+- `[x]` Update `src/services/firestore/geminiConfig.ts` to ensure server auth.
+- `[x]` Update `/api/gmail/debug` route to provide detailed diagnostics.
+- `[x]` Verify compilation and runtime builds.

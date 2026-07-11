@@ -8,6 +8,7 @@ import EditFAQHeader from "../../../components/faq/EditFAQHeader";
 import Sidebar from "../../../components/layout/Sidebar";
 import FAQContentForm from "../../../components/faq/FAQContentForm";
 import FAQCategorization from "../../../components/faq/FAQCategorization";
+import ProtectedRoute from "../../../components/auth/ProtectedRoute";
 
 export default function NewFAQPage() {
   const router = useRouter();
@@ -120,7 +121,8 @@ export default function NewFAQPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <ProtectedRoute allowedRoles={["admin", "agent"]}>
+      <div className="min-h-screen bg-slate-50">
       <EditFAQHeader
         onSave={handleSave}
         onCancel={handleCancel}
@@ -249,6 +251,7 @@ export default function NewFAQPage() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

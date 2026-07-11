@@ -81,7 +81,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={["admin"]}>
         <div className="flex min-h-screen bg-gray-100">
           <Sidebar />
           <div className="flex flex-1 flex-col md:ml-64">
@@ -162,7 +162,7 @@ export default function AnalyticsPage() {
   const maxChartCount = Math.max(...stats.chartData.map((d) => d.count), 1);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["admin"]}>
       <div className="flex min-h-screen bg-gray-100">
         {/* Sidebar */}
         <Sidebar />

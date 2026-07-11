@@ -3,9 +3,15 @@ import { getDashboardStats } from "../../../services/firestore/dashboard";
 import { collection, getDocs, getCountFromServer, query, where } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { getGmailConfig } from "../../../services/firestore/gmailConfig";
+import { checkAuthAndRole } from "../../../utils/apiAuth";
 
 export async function GET(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
+
     // 1. Fetch dashboard stats using existing service
     const baseStats = await getDashboardStats();
 

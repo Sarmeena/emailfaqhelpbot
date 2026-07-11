@@ -3,9 +3,14 @@ import { getDoc, doc, collection, query, where, orderBy, getDocs } from "firebas
 import { db } from "../../../../lib/firebase";
 import { GoogleGenAI } from "@google/genai";
 import { getGeminiConfig } from "../../../../services/firestore/geminiConfig";
+import { checkAuthAndRole } from "../../../../utils/apiAuth";
 
 export async function POST(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin", "agent"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const body = await request.json();
     const { conversationId } = body;
 

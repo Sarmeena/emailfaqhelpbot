@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGmailConfig, saveGmailConfig } from "../../../../services/firestore/gmailConfig";
+import { ensureServerAuth } from "../../../../utils/apiAuth";
 
 export async function GET(request: NextRequest) {
+  await ensureServerAuth();
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");

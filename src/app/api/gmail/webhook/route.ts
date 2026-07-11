@@ -6,9 +6,11 @@ import { generateRequestId, deriveThreadId } from "../../../../services/firestor
 import { searchFAQs } from "../../../../services/firestore/faqs";
 import { generateReply } from "../../../../services/ai/generateReply";
 import { getGeminiConfig } from "../../../../services/firestore/geminiConfig";
+import { ensureServerAuth } from "../../../../utils/apiAuth";
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerAuth();
     const payload = await request.json();
     console.log("Gmail Webhook Received Pub/Sub Event:", JSON.stringify(payload));
 

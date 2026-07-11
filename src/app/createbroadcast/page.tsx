@@ -170,7 +170,7 @@ export default function CreateBroadcastPage() {
   };
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["admin", "agent"]}>
       <div className="flex min-h-screen bg-gray-100">
         {/* Sidebar */}
         <Sidebar />

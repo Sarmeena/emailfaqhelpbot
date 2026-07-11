@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, BarChart3 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import {
   FAQ,
   categoryStyles,
@@ -12,6 +13,8 @@ interface FAQCardProps {
 }
 
 export default function FAQCard({ faq }: FAQCardProps) {
+  const { role } = useAuth();
+
   return (
     <div className="flex flex-col gap-sm rounded-xl border border-outline-variant bg-surface-container-lowest p-md shadow-sm">
       {/* Header */}
@@ -20,9 +23,11 @@ export default function FAQCard({ faq }: FAQCardProps) {
           {faq.question}
         </h3>
 
-        <button className="rounded-lg bg-surface-container p-2 text-primary transition active:scale-95">
-          <Pencil className="h-5 w-5" />
-        </button>
+        {role !== "viewer" && (
+          <button className="rounded-lg bg-surface-container p-2 text-primary transition active:scale-95">
+            <Pencil className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Answer */}

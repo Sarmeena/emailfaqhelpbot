@@ -17,6 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
+import { useAuth } from "../../context/AuthContext";
 
 const menu = [
   {
@@ -60,6 +61,17 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { isOpen, close } = useSidebar();
+  const { role } = useAuth();
+
+  const allowedMenu = menu.filter((item) => {
+    if (role === "viewer") {
+      return !["Broadcasts", "Analytics", "Settings"].includes(item.title);
+    }
+    if (role === "agent") {
+      return !["Analytics", "Settings"].includes(item.title);
+    }
+    return true;
+  });
   
   const handleLogout = async () => {
     try {
@@ -108,7 +120,7 @@ export default function Sidebar() {
         <div className="mb-md" />
 
         <nav className="flex-1 space-y-1 px-3">
-          {menu.map((item) => {
+          {allowedMenu.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
 

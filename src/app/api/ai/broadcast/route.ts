@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { getGeminiConfig } from "../../../../services/firestore/geminiConfig";
+import { checkAuthAndRole } from "../../../../utils/apiAuth";
 
 export async function POST(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin", "agent"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const body = await request.json();
     const { prompt, tone, subject } = body;
 

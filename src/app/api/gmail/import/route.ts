@@ -4,9 +4,14 @@ import { db } from "../../../../lib/firebase";
 import { generateRequestId, deriveThreadId } from "../../../../services/firestore/requests";
 import { searchFAQs } from "../../../../services/firestore/faqs";
 import { generateReply } from "../../../../services/ai/generateReply";
+import { checkAuthAndRole } from "../../../../utils/apiAuth";
 
 export async function POST(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin", "agent"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const email = await request.json();
     const { id, from, fromName, subject, body } = email;
 

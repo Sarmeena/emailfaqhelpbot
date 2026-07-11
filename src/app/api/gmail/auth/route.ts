@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveGmailConfig } from "../../../../services/firestore/gmailConfig";
+import { checkAuthAndRole } from "../../../../utils/apiAuth";
 
 export async function POST(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const body = await request.json();
     const { action, clientId, clientSecret } = body;
     console.log("CLIENT ID =", clientId);

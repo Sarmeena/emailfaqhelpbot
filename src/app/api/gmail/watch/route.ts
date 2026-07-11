@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGmailConfig, saveGmailConfig } from "../../../../services/firestore/gmailConfig";
+import { checkAuthAndRole } from "../../../../utils/apiAuth";
 
 async function performWatchRegistration(topicName: string) {
   const config = await getGmailConfig();
@@ -64,6 +65,10 @@ async function performWatchRegistration(topicName: string) {
 
 export async function GET(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const { searchParams } = new URL(request.url);
     const topicName = searchParams.get("topicName");
 
@@ -94,6 +99,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     let body;
     try {
       body = await request.json();

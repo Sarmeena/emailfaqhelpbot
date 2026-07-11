@@ -1,48 +1,53 @@
-# Edit Draft & Scheduled Broadcasts Later
+# Implementation Plan: Fix Gmail Configuration Loading Issue
 
-This plan details the changes to the broadcasts dashboard and edit flow to enable editing of both draft and scheduled broadcasts, allowing updates to be saved back to Firestore with their scheduled state.
+The GET endpoint `/api/gmail/debug` currently fails with `{"success":false,"error":"No Gmail config found"}`. This plan details the root causes and proposes changes to fix the configuration loading issues without altering the project's architecture.
+
+## Root Cause Analysis
+
+1. **Firestore Security Rules**: The settings documents (`settings/gmail` and `settings/gemini`) are protected in `firestore.rules` by:
+   ```javascript
+   match /settings/{settingId} {
+     allow read, write: if isAdmin();
+   }
+   ```
+2. **Server-side Client SDK Unauthenticated**: Next.js API routes run on the server. They interact with Firestore using the client-side Firebase SDK. Because it runs on the server, there is no active browser session/user context unless signed in. Thus, the client instance is unauthenticated (`request.auth` is `null` in rules), resulting in a `permission-denied` error from Firestore when querying `/settings/gmail`.
+3. **Missing Auto-Auth in Config Service**: The `ensureServerAuth()` helper exists in `src/utils/apiAuth.ts` to sign in the server process as the `system-backend@emailfaqhelpbot.com` admin user. However, this is not called by `getGmailConfig()` or `getGeminiConfig()`. While some endpoints call `checkAuthAndRole()` (which triggers `ensureServerAuth()`), others like `/api/gmail/debug` do not, leaving the Firebase client instance unauthenticated during the config read.
+
+---
 
 ## Proposed Changes
 
-### Component: Broadcast Footer
+### Component: Firestore Services
 
-#### [MODIFY] [BroadcastFooter.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/broadcast/BroadcastFooter.tsx)
-- Add a `status` prop to `BroadcastFooterProps`.
-- Dynamically render the secondary action button text. If `status === "Scheduled"`, change the text from `"Save Draft"` to `"Schedule Broadcast"`, while retaining `"Save Draft"` for other statuses.
+#### [MODIFY] [gmailConfig.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/gmailConfig.ts)
+- Modify `getGmailConfig`, `saveGmailConfig`, and `disconnectGmail` to ensure server-side Firebase is authenticated before performing operations by dynamically importing and running `ensureServerAuth()` if running server-side (`typeof window === "undefined"`).
+- Automatically validate that the loaded `settings/gmail` document contains all required fields (`clientId`, `clientSecret`, `accessToken`, `refreshToken`, `expiryDate`, `connected`, `emailAddress`, `isSimulated`, `redirectUri`, `scopes`).
+- If any fields are missing, merge them with appropriate defaults and write back to Firestore to ensure document consistency.
 
----
-
-### Page: Edit Broadcast Client
-
-#### [MODIFY] [EditBroadcastClient.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/broadcasts/edit/EditBroadcastClient.tsx)
-- Implement a unified `handleSave()` function (passed as `onSaveDraft` to the footer) that saves the broadcast.
-- The `handleSave()` function will check the selected `status` from settings:
-  - If `status === "Scheduled"`, it saves the document with `"Scheduled"`, `scheduleDate`, and `scheduleTime` fields preserved.
-  - Otherwise, it defaults to saving as `"Draft"`.
-- Pass the current `status` state to the `<BroadcastFooter />` component so it can adapt dynamically.
+#### [MODIFY] [geminiConfig.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/geminiConfig.ts)
+- Modify `getGeminiConfig` and `saveGeminiConfig` to dynamically ensure server-side Firebase is authenticated.
 
 ---
 
-### Component: Broadcast Table
+### Component: Gmail API Endpoints
 
-#### [MODIFY] [BroadcastTable.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/broadcast/BroadcastTable.tsx)
-- Hide the "Edit" button for broadcasts that have already been sent (`status === "Sent"`).
-- In the mobile card layout section of the table component, render an **"Edit Schedule"** action button for broadcasts with `"Scheduled"` status, enabling scheduled campaigns to be managed on mobile screens.
-
----
-
-### Page: Broadcasts Listing
-
-#### [MODIFY] [page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/broadcasts/page.tsx)
-- Fix the desktop/mobile view rendering bug: remove the duplicate/mock `<BroadcastMobileCards />` element, and render `<BroadcastTable />` without wrappers. This ensures that the real Firestore-backed list is responsive and renders on all devices.
+#### [MODIFY] [route.ts (debug)](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/debug/route.ts)
+- Update `/api/gmail/debug` to perform detailed diagnostics:
+  - Check and report system server-side auth status.
+  - Attempt direct Firestore fetch and catch any permission or access errors.
+  - Validate all fields in the retrieved document, flagging missing or invalid fields.
+  - Safely attempt a dry-run of the Google OAuth refresh flow using the client credentials and refresh token (if present) to verify OAuth status.
 
 ---
 
 ## Verification Plan
 
+### Automated Verification
+- We will verify that the project builds cleanly without TypeScript or runtime issues:
+  - Since we cannot run build command directly due to Sandbox AppData write protections on the helper runner scripts, we will rely on checking file contents and ensuring all types match perfectly, or ask the user to verify if they can run it.
+  - Wait, can we run npm commands? Yes, we have npm run command allowed: `command(npm run): allowed`. Let's see if running build through npm run works.
+
 ### Manual Verification
-- Navigate to the **Broadcasts** page.
-- Ensure the table loads real data from Firestore on both mobile and desktop resolutions.
-- Click **Edit** on a **Draft** broadcast. Change settings to "Scheduled" and select a date/time. Click **Schedule Broadcast** in the footer and confirm it updates to "Scheduled" in the dashboard list.
-- Click **Edit** (or **Edit Schedule** on mobile) on a **Scheduled** broadcast. Verify the date/time inputs are populated with the saved values. Make changes and save to confirm updates.
-- Verify that a broadcast with status **Sent** does not display an "Edit" button.
+- Verify endpoint using browser or simulated tools:
+  - Access `/api/gmail/debug` to check details of Firestore connection, missing fields, security rule status, and OAuth refresh response.
+  - Validate that `settings/gmail` is successfully read, updated with defaults (if missing), and that auth refresh works.

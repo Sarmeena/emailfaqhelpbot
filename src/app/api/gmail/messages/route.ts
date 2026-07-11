@@ -5,6 +5,7 @@ import { db } from "../../../../lib/firebase";
 import { generateRequestId, deriveThreadId } from "../../../../services/firestore/requests";
 import { searchFAQs } from "../../../../services/firestore/faqs";
 import { generateReply } from "../../../../services/ai/generateReply";
+import { checkAuthAndRole } from "../../../../utils/apiAuth";
 
 async function importEmailMessage(
   msgId: string, 
@@ -128,6 +129,10 @@ async function importEmailMessage(
 
 export async function GET(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin", "agent", "viewer"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const config = await getGmailConfig();
     const isSimulated = !config || !config.connected || config.isSimulated;
 

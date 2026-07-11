@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { Menu, Plus, User, ChevronDown } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function RequestHeader() {
   const { open } = useSidebar();
+  const { role } = useAuth();
+
+  const isReadOnly = role === "viewer";
+  const roleDisplay = role ? role.charAt(0).toUpperCase() + role.slice(1) : "Guest";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
@@ -31,21 +36,23 @@ export default function RequestHeader() {
       {/* Right */}
       <div className="flex items-center gap-4">
         {/* New Request Button */}
-        <Link
-          href="/requests/create"
-          className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
-        >
-          <Plus size={18} />
-          <span className="hidden md:block">
-            New Request
-          </span>
-        </Link>
+        {!isReadOnly && (
+          <Link
+            href="/requests/create"
+            className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
+          >
+            <Plus size={18} />
+            <span className="hidden md:block">
+              New Request
+            </span>
+          </Link>
+        )}
 
         {/* Profile */}
         <div className="hidden cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-gray-100 md:flex">
           <div className="text-right">
             <p className="text-sm font-bold text-gray-800">
-              Admin
+              {roleDisplay}
             </p>
           </div>
 

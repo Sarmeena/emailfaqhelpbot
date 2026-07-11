@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGeminiConfig, saveGeminiConfig } from "../../../../services/firestore/geminiConfig";
+import { checkAuthAndRole } from "../../../../utils/apiAuth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const config = await getGeminiConfig();
     return NextResponse.json({ success: true, config });
   } catch (error) {
@@ -16,6 +21,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const { errorResponse } = await checkAuthAndRole(request, ["admin"]);
+    if (errorResponse) {
+      return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
+    }
     const body = await request.json();
     await saveGeminiConfig(body);
     return NextResponse.json({ success: true, message: "Gemini configuration saved successfully" });

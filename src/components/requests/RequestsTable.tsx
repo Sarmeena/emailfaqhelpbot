@@ -10,6 +10,7 @@ import {
   Request,
 } from "../../services/firestore/requests";
 import { Hash, GitBranch, ChevronDown, ChevronRight, X, Link2 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 type ThreadGroup = {
   threadId: string;
@@ -22,6 +23,8 @@ interface RequestsTableProps {
 }
 
 export default function RequestsTable({ filter }: RequestsTableProps) {
+  const { role } = useAuth();
+  const isReadOnly = role === "viewer";
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
@@ -224,7 +227,8 @@ export default function RequestsTable({ filter }: RequestsTableProps) {
                       <select
                         value={request.status}
                         onChange={(e) => handleStatusChange(request.id!, e.target.value)}
-                        className={`rounded-full px-3 py-1 text-xs font-semibold border-0 outline-none cursor-pointer ${statusColor[request.status] ?? "bg-gray-100 text-gray-700"}`}
+                        disabled={isReadOnly}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold border-0 outline-none ${isReadOnly ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${statusColor[request.status] ?? "bg-gray-100 text-gray-700"}`}
                       >
                         <option>Open</option>
                         <option>In Progress</option>
@@ -246,18 +250,22 @@ export default function RequestsTable({ filter }: RequestsTableProps) {
                         >
                           View
                         </button>
-                        <Link
-                          href={`/requests/edit/${request.id}`}
-                          className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700 transition"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(request.id!)}
-                          className="rounded bg-red-500 px-3 py-1 text-sm font-medium text-white hover:bg-red-600 transition"
-                        >
-                          Delete
-                        </button>
+                        {!isReadOnly && (
+                          <>
+                            <Link
+                              href={`/requests/edit/${request.id}`}
+                              className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700 transition"
+                            >
+                              Edit
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(request.id!)}
+                              className="rounded bg-red-500 px-3 py-1 text-sm font-medium text-white hover:bg-red-600 transition"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

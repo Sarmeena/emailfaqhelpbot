@@ -4,6 +4,7 @@ import { Pencil, Eye, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FAQ } from "../../services/firestore/faqs";
+import { useAuth } from "../../context/AuthContext";
 
 import {
   categoryStyles,
@@ -41,6 +42,7 @@ export default function FAQTable({
   category,
   status,
 }: FAQTableProps) {
+  const { role } = useAuth();
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFaq, setSelectedFaq] = useState<FAQ | null>(null);
@@ -265,19 +267,21 @@ export default function FAQTable({
                   >
                     <Eye size={18} />
                   </button>
-                  <Link
-                    href={`/faq?id=${faq.id}`}
-                    className="
-                      rounded-lg
-                      p-2
-                      text-blue-600
-                      transition
-                      hover:bg-blue-50
-                      hover:text-blue-700
-                    "
-                  >
-                    <Pencil size={18}/>
-                  </Link>
+                  {role !== "viewer" && (
+                    <Link
+                      href={`/faq?id=${faq.id}`}
+                      className="
+                        rounded-lg
+                        p-2
+                        text-blue-600
+                        transition
+                        hover:bg-blue-55
+                        hover:text-blue-700
+                      "
+                    >
+                      <Pencil size={18}/>
+                    </Link>
+                  )}
                 </td>
 
               </tr>
