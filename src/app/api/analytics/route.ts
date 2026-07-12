@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDashboardStats } from "../../../services/firestore/dashboard";
-import { collection, getDocs, getCountFromServer, query, where } from "firebase/firestore";
+import { collection, getDocs, getCountFromServer, query, where, orderBy, limit } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { getGmailConfig } from "../../../services/firestore/gmailConfig";
 import { checkAuthAndRole } from "../../../utils/apiAuth";
@@ -45,8 +45,13 @@ export async function GET(request: NextRequest) {
     };
 
     // 5. Generate recent activity timeline (last 5 requests created)
-    const requestsSnapshot = await getDocs(collection(db, "requests"));
-    const requestsData = requestsSnapshot.docs.map((doc) => {
+    const recentQuery = query(
+      collection(db, "requests"),
+      orderBy("createdAt", "desc"),
+      limit(5)
+    );
+    const recentSnapshot = await getDocs(recentQuery);
+    const recentActivity = recentSnapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -60,12 +65,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Sort by createdAt descending and take 5
-    const recentActivity = [...requestsData]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
-
-    // Compute daily creation metrics for charting (last 7 days counts)
+    // 6. Compute daily creation metrics for charting (last 7 days counts)
     const dailyCounts: Record<string, number> = {};
     const today = new Date();
     for (let i = 6; i >= 0; i--) {
@@ -75,11 +75,23 @@ export async function GET(request: NextRequest) {
       dailyCounts[dateString] = 0;
     }
 
-    requestsData.forEach((req) => {
-      const reqDate = new Date(req.createdAt);
-      const dateString = reqDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      if (dateString in dailyCounts) {
-        dailyCounts[dateString]++;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    const chartQuery = query(
+      collection(db, "requests"),
+      where("createdAt", ">=", sevenDaysAgo)
+    );
+    const chartSnapshot = await getDocs(chartQuery);
+
+    chartSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      if (data.createdAt) {
+        const reqDate = data.createdAt.toDate();
+        const dateString = reqDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        if (dateString in dailyCounts) {
+          dailyCounts[dateString]++;
+        }
       }
     });
 

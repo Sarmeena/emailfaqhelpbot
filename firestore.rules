@@ -14,15 +14,21 @@ service cloud.firestore {
     
     // Helper functions for roles
     function isAdmin() {
-      return isAuthenticated() && getUserData().role == 'admin';
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             getUserData().role == 'admin';
     }
     
     function isAgent() {
-      return isAuthenticated() && (getUserData().role == 'agent' || getUserData().role == 'admin');
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (getUserData().role == 'agent' || getUserData().role == 'admin');
     }
     
     function isViewer() {
-      return isAuthenticated() && (getUserData().role == 'viewer' || getUserData().role == 'agent' || getUserData().role == 'admin');
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (getUserData().role == 'viewer' || getUserData().role == 'agent' || getUserData().role == 'admin');
     }
 
     // --- Users Collection ---

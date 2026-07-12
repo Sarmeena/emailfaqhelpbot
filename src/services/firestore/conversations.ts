@@ -115,7 +115,8 @@ export async function getMessages(
 
   const msgQuery = query(
     collection(db, "messages"),
-    where("conversationId", "in", ids)
+    where("conversationId", "in", ids),
+    orderBy("createdAt", "asc")
   );
 
   const snapshot = await getDocs(msgQuery);
@@ -124,12 +125,6 @@ export async function getMessages(
     id: doc.id,
     ...doc.data(),
   })) as Message[];
-
-  messages.sort((a: any, b: any) => {
-    const aTime = a.createdAt?.seconds || a.createdAt?._seconds || 0;
-    const bTime = b.createdAt?.seconds || b.createdAt?._seconds || 0;
-    return aTime - bTime;
-  });
 
   return messages;
 }
@@ -214,7 +209,8 @@ export function subscribeToMessages(
       
       const msgQuery = query(
         collection(db, "messages"),
-        where("conversationId", "in", ids)
+        where("conversationId", "in", ids),
+        orderBy("createdAt", "asc")
       );
       
       unsubscribeMsgs = onSnapshot(msgQuery, (msgSnapshot) => {
@@ -222,12 +218,6 @@ export function subscribeToMessages(
           id: doc.id,
           ...doc.data(),
         })) as Message[];
-        
-        messages.sort((a: any, b: any) => {
-          const aTime = a.createdAt?.seconds || a.createdAt?._seconds || 0;
-          const bTime = b.createdAt?.seconds || b.createdAt?._seconds || 0;
-          return aTime - bTime;
-        });
         
         callback(messages);
       });
@@ -243,7 +233,8 @@ export function subscribeToMessages(
 
   const q = query(
     collection(db, "messages"),
-    where("conversationId", "==", conversationId)
+    where("conversationId", "==", conversationId),
+    orderBy("createdAt", "asc")
   );
 
   return onSnapshot(q, (snapshot) => {
@@ -251,12 +242,6 @@ export function subscribeToMessages(
       id: doc.id,
       ...doc.data(),
     })) as Message[];
-
-    messages.sort((a: any, b: any) => {
-      const aTime = a.createdAt?.seconds || a.createdAt?._seconds || 0;
-      const bTime = b.createdAt?.seconds || b.createdAt?._seconds || 0;
-      return aTime - bTime;
-    });
 
     callback(messages);
   });

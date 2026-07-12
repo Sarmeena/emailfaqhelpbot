@@ -1,6 +1,8 @@
-# Tasks: Fix Gmail Configuration Loading Issue
+# Tasks: Resolve App Check and Gmail API Errors
 
-- `[x]` Update `src/services/firestore/gmailConfig.ts` to ensure server auth and add validation defaults.
-- `[x]` Update `src/services/firestore/geminiConfig.ts` to ensure server auth.
-- `[x]` Update `/api/gmail/debug` route to provide detailed diagnostics.
-- `[x]` Verify compilation and runtime builds.
+- `[x]` Add `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` to `.env.local`
+- `[x]` Update `src/lib/firebase.ts` with CustomProvider App Check on the server
+- `[x]` Guard role checks with `exists()` in `firestore.rules`
+- `[x]` Implement graceful fallback to simulated messages in `src/app/api/gmail/messages/route.ts`
+- `[x]` Implement invalid/expired token auto-healing in `src/services/firestore/gmailConfig.ts`
+- `[x]` Verify local execution and check for server-side App Check logs

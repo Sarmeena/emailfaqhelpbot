@@ -7,6 +7,9 @@ import {
   doc,
   serverTimestamp,
   Timestamp,
+  query,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 
 import { db } from "../../lib/firebase";
@@ -108,4 +111,18 @@ export async function getRequest(id: string) {
     id: snapshot.id,
     ...snapshot.data(),
   } as Request;
+}
+
+export async function getRecentRequests(limitCount: number = 3) {
+  const q = query(
+    collection(db, "requests"),
+    orderBy("createdAt", "desc"),
+    limit(limitCount)
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Request[];
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getRequests, Request } from "../../services/firestore/requests";
+import { getRecentRequests, Request } from "../../services/firestore/requests";
 import Link from "next/link";
 
 export default function RecentRequests() {
@@ -11,14 +11,8 @@ export default function RecentRequests() {
   useEffect(() => {
     async function loadRequests() {
       try {
-        const data = await getRequests();
-        // Sort requests by createdAt (newest first)
-        const sorted = (data || []).sort((a, b) => {
-          const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-          const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-          return bTime - aTime;
-        });
-        setRequests(sorted.slice(0, 3));
+        const data = await getRecentRequests(3);
+        setRequests(data);
       } catch (err) {
         console.error("Error loading recent requests:", err);
       } finally {

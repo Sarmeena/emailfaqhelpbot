@@ -97,7 +97,15 @@ export async function getGmailConfig(): Promise<GmailConfig | null> {
             updated = true;
             console.log("[gmailConfig] Successfully refreshed and updated access token.");
           } else {
-            console.error("[gmailConfig] Failed to refresh token:", await refreshResponse.text());
+            const errorText = await refreshResponse.text();
+            console.error("[gmailConfig] Failed to refresh token:", errorText);
+            if (errorText.includes("invalid_grant") || errorText.includes("revoked")) {
+              console.log("[gmailConfig] Token is revoked or invalid. Marking as disconnected.");
+              merged.connected = false;
+              merged.accessToken = "";
+              merged.refreshToken = "";
+              updated = true;
+            }
           }
         } catch (err) {
           console.error("[gmailConfig] Error refreshing access token:", err);
