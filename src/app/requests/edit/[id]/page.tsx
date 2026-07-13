@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "../../../../context/AuthContext";
 import ProtectedRoute from "../../../../components/auth/ProtectedRoute";
 
 import {
@@ -10,6 +11,7 @@ import {
 } from "../../../../services/firestore/requests";
 
 export default function EditRequestPage() {
+  const { user, role, loading: authLoading } = useAuth();
   const { id } = useParams();
   const router = useRouter();
 
@@ -23,9 +25,10 @@ export default function EditRequestPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadRequest() {
-      if (!id) return;
+    if (authLoading || !user || !role) return;
+    if (!id) return;
 
+    async function loadRequest() {
       try {
         const request = await getRequest(id as string);
 
@@ -35,15 +38,18 @@ export default function EditRequestPage() {
         setMessage(request.message);
         setPriority(request.priority);
         setStatus(request.status);
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
+        if (error.code === "permission-denied" || error.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] EditRequestPage getRequest denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
 
     loadRequest();
-  }, [id]);
+  }, [id, user, role, authLoading]);
 
   async function handleSubmit(
     e: React.FormEvent<HTMLFormElement>
@@ -69,7 +75,7 @@ export default function EditRequestPage() {
     }
   }
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <ProtectedRoute allowedRoles={["admin", "agent"]}>
         <div className="flex min-h-screen items-center justify-center">

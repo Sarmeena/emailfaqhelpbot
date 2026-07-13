@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
-import {
-  subscribeMessages,
-  Message,
-} from "../../../services/firestore/conversations";
+import { useEffect, useState, useRef } from "react";
+import { useAuth } from "../../../context/AuthContext";
+import { Message, subscribeMessages } from "../../../services/firestore/conversations";
 
 interface ChatWindowProps {
   conversationId: string;
@@ -16,12 +13,15 @@ export default function ChatWindow({
   conversationId,
   onLatestCustomerMessage,
 }: ChatWindowProps) {
+  const { user, role, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     if (!conversationId) {
       setMessages([]);
       setLoading(false);
@@ -48,7 +48,7 @@ export default function ChatWindow({
     );
 
     return () => unsubscribe();
-  }, [conversationId, onLatestCustomerMessage]);
+  }, [conversationId, onLatestCustomerMessage, user, role, authLoading]);
 
   const formatMessageTime = (ts: any) => {
     if (!ts) return "Just now";
@@ -66,7 +66,7 @@ export default function ChatWindow({
     });
   }, [messages]);
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="animate-pulse text-gray-400">

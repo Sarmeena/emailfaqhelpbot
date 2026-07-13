@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 export default function SettingsGemini() {
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gemini-2.5-flash");
+  const [model, setModel] = useState("gemini-3.5-flash");
   const [temperature, setTemperature] = useState(0.7);
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [autoFaqEnabled, setAutoFaqEnabled] = useState(false);
@@ -22,7 +22,7 @@ export default function SettingsGemini() {
           const config = json.config;
           if (config) {
             setApiKey(config.apiKey || "");
-            setModel(config.model || "gemini-2.5-flash");
+            setModel(config.model || "gemini-3.5-flash");
             setTemperature(config.temperature !== undefined ? config.temperature : 0.7);
             setAutoReplyEnabled(!!config.autoReplyEnabled);
             setAutoFaqEnabled(!!config.autoFaqEnabled);
@@ -112,7 +112,9 @@ export default function SettingsGemini() {
               onChange={(e) => setModel(e.target.value)}
               className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
+              <option value="gemini-3.5-flash">Gemini 3.5 Flash (Recommended)</option>
+              <option value="gemini-3.5-pro">Gemini 3.5 Pro</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
               <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
               <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
               <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>

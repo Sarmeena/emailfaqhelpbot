@@ -220,6 +220,8 @@ export function subscribeToMessages(
         })) as Message[];
         
         callback(messages);
+      }, (err) => {
+        console.error("[Firestore Permission Failure] subscribeToMessages inner messages listener failed for THREAD:", err);
       });
     }, (err) => {
       console.error("Error in subscribeToMessages requests listener:", err);
@@ -244,6 +246,8 @@ export function subscribeToMessages(
     })) as Message[];
 
     callback(messages);
+  }, (err) => {
+    console.error("[Firestore Permission Failure] subscribeToMessages fallback messages listener failed:", err);
   });
 }
 

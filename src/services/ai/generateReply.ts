@@ -10,7 +10,7 @@ export async function generateReply(
 ) {
   const config = await getGeminiConfig();
   const apiKey = config?.apiKey || process.env.GEMINI_API_KEY;
-  const model = config?.model || "gemini-2.5-flash";
+  const model = config?.model || "gemini-3.5-flash";
   const temperature = config?.temperature !== undefined ? config.temperature : 0.7;
 
   if (!apiKey) {
@@ -52,16 +52,39 @@ ${customerMessage}
 Write a polite, professional support acknowledgment email letting the customer know we have received their message and our support team will help them shortly. Do not state specific solutions since we don't have FAQs for it, just write a helpful, reassuring acknowledgment.
 `;
 
-  const response = await ai.models.generateContent({
-    model: model,
-    contents: prompt,
-    config: {
-      temperature: temperature
-    }
-  });
+  let maxRetries = 3;
+  let delay = 2000;
 
-  return (
-    response.text ??
-    "Sorry, I couldn't generate a reply."
-  );
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: {
+          temperature: temperature
+        }
+      });
+      return response.text ?? "Sorry, I couldn't generate a reply.";
+    } catch (apiError: any) {
+      const isRateLimit = apiError?.message?.includes("quota") || 
+                          apiError?.message?.includes("429") || 
+                          apiError?.status === 429 || 
+                          apiError?.code === 429;
+      
+      if (isRateLimit && attempt < maxRetries) {
+        let waitTime = delay;
+        const match = apiError?.message?.match(/Please retry in ([\d\.]+)s/i);
+        if (match) {
+          waitTime = (parseFloat(match[1]) + 0.5) * 1000;
+        }
+        console.warn(`[generateReply] Gemini rate limit exceeded (429). Retrying in ${waitTime}ms (attempt ${attempt}/${maxRetries})...`);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        delay *= 2.5;
+      } else {
+        throw apiError;
+      }
+    }
+  }
+
+  throw new Error("Failed to generate reply after max retries due to Gemini rate limits.");
 }

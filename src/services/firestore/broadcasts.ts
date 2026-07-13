@@ -67,8 +67,11 @@ scheduleTime: data.scheduleTime ?? "",
       deliveryHistory: data.deliveryHistory ?? [],
 
       createdAt: data.createdAt
-  ? data.createdAt.toDate().toLocaleDateString()
-  : "-",
+        ? (typeof data.createdAt.toDate === "function"
+            ? data.createdAt.toDate()
+            : new Date(data.createdAt.seconds ? data.createdAt.seconds * 1000 : data.createdAt)
+          ).toLocaleDateString()
+        : "-",
     };
   }) as Broadcast[];
 }
@@ -93,7 +96,10 @@ export async function getBroadcastById(id: string) {
     replyRate: data.replyRate ?? 0,
     deliveryHistory: data.deliveryHistory ?? [],
     createdAt: data.createdAt
-      ? data.createdAt.toDate().toLocaleDateString()
+      ? (typeof data.createdAt.toDate === "function"
+          ? data.createdAt.toDate()
+          : new Date(data.createdAt.seconds ? data.createdAt.seconds * 1000 : data.createdAt)
+        ).toLocaleDateString()
       : "-",
   } as Broadcast;
 }

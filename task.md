@@ -1,8 +1,12 @@
-# Tasks: Resolve App Check and Gmail API Errors
+# Tasks: Resolve Shared Authorization Problem with Firebase Admin SDK
 
-- `[x]` Add `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` to `.env.local`
-- `[x]` Update `src/lib/firebase.ts` with CustomProvider App Check on the server
-- `[x]` Guard role checks with `exists()` in `firestore.rules`
-- `[x]` Implement graceful fallback to simulated messages in `src/app/api/gmail/messages/route.ts`
-- `[x]` Implement invalid/expired token auto-healing in `src/services/firestore/gmailConfig.ts`
-- `[x]` Verify local execution and check for server-side App Check logs
+- `[x]` Install `firebase-admin` dependency (added to package.json)
+- `[x]` Create Firebase Admin SDK initializer at `src/lib/firebaseAdmin.ts`
+- `[x]` Update shared auth middleware `checkAuthAndRole` in `src/utils/apiAuth.ts`
+  - `[x]` Integrate Admin SDK token verification and document reads
+  - `[x]` Add detailed logging of authorization decisions
+  - `[x]` Implement local development fallback to custom verify/REST API
+  - `[x]` Refactor REST API fallback to use client token instead of server email/pass login
+- `[x]` Update `src/services/firestore/geminiConfig.ts` to use Admin SDK on the server with client token REST fallback
+- `[x]` Update `src/services/firestore/gmailConfig.ts` to use Admin SDK on the server with client token REST fallback
+- `[x]` Verify and compile changes in next dev environment

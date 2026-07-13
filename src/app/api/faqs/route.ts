@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFAQs, getFAQById, addFAQ, updateFAQ, deleteFAQ } from "../../../services/firestore/faqs";
-import { checkAuthAndRole } from "../../../utils/apiAuth";
+import { checkAuthAndRole, ensureServerAuth } from "../../../utils/apiAuth";
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureServerAuth();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest) {
     if (errorResponse) {
       return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
     }
+    
+    await ensureServerAuth();
+    
     const body = await request.json();
     const { question, answer, category, source, fileName, fileSize, uploadedAt } = body;
 
@@ -53,6 +57,9 @@ export async function PUT(request: NextRequest) {
     if (errorResponse) {
       return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
     }
+    
+    await ensureServerAuth();
+    
     const body = await request.json();
     const { id, question, answer, category } = body;
 
@@ -77,6 +84,9 @@ export async function DELETE(request: NextRequest) {
     if (errorResponse) {
       return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
     }
+    
+    await ensureServerAuth();
+    
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

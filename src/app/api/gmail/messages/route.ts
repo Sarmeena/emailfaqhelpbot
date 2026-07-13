@@ -5,7 +5,7 @@ import { db } from "../../../../lib/firebase";
 import { generateRequestId, deriveThreadId } from "../../../../services/firestore/requests";
 import { searchFAQs } from "../../../../services/firestore/faqs";
 import { generateReply } from "../../../../services/ai/generateReply";
-import { checkAuthAndRole } from "../../../../utils/apiAuth";
+import { checkAuthAndRole, ensureServerAuth } from "../../../../utils/apiAuth";
 
 async function importEmailMessage(
   msgId: string, 
@@ -15,13 +15,19 @@ async function importEmailMessage(
   body: string, 
   token: string | null,
   threadIdParam?: string,
-  messageIdHeader?: string
+  messageIdHeader?: string,
+  firebaseToken?: string
 ) {
   const requestId = generateRequestId();
   const threadId = deriveThreadId(fromEmail);
 
-  // Retrieve FAQs matching the body content
-  const matchingFAQs = await searchFAQs(body);
+  // Retrieve FAQs matching the body content (wrapped to prevent crash on read permission errors)
+  let matchingFAQs: any[] = [];
+  try {
+    matchingFAQs = await searchFAQs(body);
+  } catch (faqErr) {
+    console.warn("[AUTO-IMPORT] searchFAQs failed, using empty matches:", faqErr);
+  }
 
   // Always generate reply using Gemini AI
   let reply = "";
@@ -32,11 +38,7 @@ async function importEmailMessage(
     reply = `Thank you for contacting us. We have received your message regarding this issue. A customer support agent has been notified and will assist you directly in this thread shortly.`;
   }
 
-  // Allocate unified ID to link Requests and Conversations
-  const requestDocRef = doc(collection(db, "requests"));
-  const docId = requestDocRef.id;
   const conversationId = threadId;
-
   const containsSensitive = /refund|billing|charge|credit card|expired|locked|hacked|fraud|security|error 500/i.test(body + " " + subject);
   const hasNoFAQMatch = matchingFAQs.length === 0;
   const escalated = containsSensitive || hasNoFAQMatch;
@@ -44,8 +46,7 @@ async function importEmailMessage(
   const priority = escalated ? "High" : "Medium";
   const status = escalated ? "Open" : "In Progress";
 
-  // Create request
-  await setDoc(requestDocRef, {
+  const requestData = {
     requestId,
     threadId,
     customerName: fromName || fromEmail,
@@ -58,35 +59,68 @@ async function importEmailMessage(
     gmailMessageId: msgId,
     gmailThreadId: threadIdParam || msgId,
     escalated,
-    createdAt: serverTimestamp(),
-  });
+    createdAt: new Date().toISOString(),
+  };
 
-  // Create parallel conversation
-  await setDoc(doc(db, "conversations", conversationId), {
+  const conversationData = {
     customerName: fromName || fromEmail,
     customerEmail: fromEmail,
     subject,
     status,
     lastMessage: reply.slice(0, 100) + "...",
-    updatedAt: serverTimestamp(),
+    updatedAt: new Date().toISOString(),
     threadId,
-  }, { merge: true });
+  };
 
-  // Add inbound message
-  await addDoc(collection(db, "messages"), {
+  const msg1Data = {
     conversationId: conversationId,
     sender: fromName || fromEmail,
     message: body,
-    createdAt: serverTimestamp(),
-  });
+    createdAt: new Date().toISOString(),
+  };
 
-  // Add automated reply message
-  await addDoc(collection(db, "messages"), {
+  const msg2Data = {
     conversationId: conversationId,
     sender: "AI Assistant",
     message: reply,
-    createdAt: serverTimestamp(),
-  });
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    const { adminDb } = await import("../../../../lib/firebaseAdmin");
+    if (adminDb) {
+      // Create request with auto ID
+      const reqRef = adminDb.collection("requests").doc();
+      await reqRef.set(requestData);
+      
+      // Create parallel conversation
+      await adminDb.collection("conversations").doc(conversationId).set(conversationData, { merge: true });
+      
+      // Add messages
+      await adminDb.collection("messages").add(msg1Data);
+      await adminDb.collection("messages").add(msg2Data);
+      console.log(`[AUTO-IMPORT] Imported message ${msgId} and created records via Admin SDK.`);
+    } else {
+      throw new Error("Admin SDK not initialized");
+    }
+  } catch (adminErr) {
+    console.warn("[AUTO-IMPORT] Admin SDK write failed, trying REST API fallback:", adminErr);
+    if (!firebaseToken) {
+      throw new Error("No firebaseToken provided for REST fallback in importEmailMessage");
+    }
+    const { setFirestoreDocREST } = await import("../../../../utils/apiAuth");
+    
+    // Generate a random doc ID for requests and messages
+    const randomReqId = Math.random().toString(36).substring(2, 15);
+    const randomMsg1Id = Math.random().toString(36).substring(2, 15);
+    const randomMsg2Id = Math.random().toString(36).substring(2, 15);
+
+    await setFirestoreDocREST("requests", randomReqId, requestData, firebaseToken);
+    await setFirestoreDocREST("conversations", conversationId, conversationData, firebaseToken);
+    await setFirestoreDocREST("messages", randomMsg1Id, msg1Data, firebaseToken);
+    await setFirestoreDocREST("messages", randomMsg2Id, msg2Data, firebaseToken);
+    console.log(`[AUTO-IMPORT] Imported message ${msgId} and created records via REST API.`);
+  }
 
   // Send the email reply back to Gmail (in-thread) if real connection token exists
   if (token && messageIdHeader) {
@@ -133,20 +167,70 @@ export async function GET(request: NextRequest) {
     if (errorResponse) {
       return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
     }
-    const config = await getGmailConfig();
+    
+    await ensureServerAuth();
+    
+    const firebaseToken = request.headers.get("authorization")?.split(" ")[1];
+    const config = await getGmailConfig(firebaseToken);
     let isSimulated = !config || !config.connected || config.isSimulated;
 
-    // Retrieve already imported Gmail messages
-    const requestsSnapshot = await getDocs(
-      query(collection(db, "requests"), where("source", "==", "Gmail"))
-    );
+    // Retrieve already imported Gmail messages securely via Admin SDK or REST API
     const importedIds = new Set<string>();
-    requestsSnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.gmailMessageId) {
-        importedIds.add(data.gmailMessageId);
+    try {
+      const { adminDb } = await import("../../../../lib/firebaseAdmin");
+      if (adminDb) {
+        const snapshot = await adminDb.collection("requests").where("source", "==", "Gmail").get();
+        snapshot.forEach((doc: any) => {
+          const data = doc.data();
+          if (data.gmailMessageId) {
+            importedIds.add(data.gmailMessageId);
+          }
+        });
+      } else {
+        throw new Error("Admin SDK not initialized");
       }
-    });
+    } catch (err) {
+      console.warn("[Gmail Messages GET] Admin SDK requests read failed, trying REST API fallback:", err);
+      if (firebaseToken) {
+        try {
+          const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+          const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${firebaseToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              structuredQuery: {
+                from: [{ collectionId: "requests" }],
+                where: {
+                  fieldFilter: {
+                    field: { fieldPath: "source" },
+                    op: "EQUAL",
+                    value: { stringValue: "Gmail" }
+                  }
+                }
+              }
+            }),
+          });
+          if (res.ok) {
+            const queryRes = await res.json();
+            for (const item of queryRes) {
+              if (item.document) {
+                const { parseRESTFields } = await import("../../../../utils/apiAuth");
+                const fields = parseRESTFields(item.document.fields);
+                if (fields.gmailMessageId) {
+                  importedIds.add(fields.gmailMessageId);
+                }
+              }
+            }
+          }
+        } catch (restErr) {
+          console.error("[Gmail Messages GET] REST fallback failed:", restErr);
+        }
+      }
+    }
 
     const mockMessages = [
       {
@@ -203,7 +287,7 @@ export async function GET(request: NextRequest) {
             await saveGmailConfig({
               accessToken: token,
               expiryDate: newExpiry,
-            });
+            }, firebaseToken);
           }
         }
 
@@ -266,7 +350,8 @@ export async function GET(request: NextRequest) {
                 body,
                 token,
                 detail.threadId,
-                messageIdHeader
+                messageIdHeader,
+                firebaseToken
               );
             }
 
@@ -298,7 +383,7 @@ export async function GET(request: NextRequest) {
     for (const mock of mockMessages) {
       const idToCheck = mock.id;
       if (!importedIds.has(idToCheck)) {
-        await importEmailMessage(idToCheck, mock.from, mock.fromName, mock.subject, mock.body, null);
+        await importEmailMessage(idToCheck, mock.from, mock.fromName, mock.subject, mock.body, null, undefined, undefined, firebaseToken);
       }
     }
 

@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { FileText, Eye, RefreshCw } from "lucide-react";
 import { getDashboardStats } from "../../services/firestore/dashboard";
 
 export default function TrendingFaqs() {
+  const { user, role, loading: authLoading } = useAuth();
   const [faqs, setFaqs] = useState<Array<{ id: string; question: string; usage: number }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function loadStats() {
       try {
         const stats = await getDashboardStats();
@@ -17,16 +21,19 @@ export default function TrendingFaqs() {
           usage: faq.usage || (24 - idx * 4 > 0 ? 24 - idx * 4 : 5)
         }));
         setFaqs(mapped);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error loading trending FAQs:", err);
+        if (err.code === "permission-denied" || err.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] TrendingFaqs dashboard query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
     loadStats();
-  }, []);
+  }, [user, role, authLoading]);
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <div className="rounded-xl border bg-white p-6 shadow-sm flex items-center justify-center min-h-[180px]">
         <RefreshCw size={20} className="animate-spin text-primary mr-2" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { getBroadcasts } from "../../services/firestore/broadcasts";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -18,22 +19,28 @@ interface Broadcast {
 }
 
 export default function BroadcastTable() {
+  const { user, role, loading: authLoading } = useAuth();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function loadBroadcasts() {
       try {
         const data = await getBroadcasts();
         setBroadcasts((data as any[] || []).slice(0, 3));
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error loading broadcasts for dashboard:", err);
+        if (err.code === "permission-denied" || err.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] BroadcastTable dashboard query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
     loadBroadcasts();
-  }, []);
+  }, [user, role, authLoading]);
 
   return (
     <section className="rounded-xl border bg-white p-6 shadow-sm">
@@ -49,7 +56,7 @@ export default function BroadcastTable() {
       </div>
 
       <div className="overflow-x-auto">
-        {loading ? (
+        {authLoading || !user || !role || loading ? (
           <div className="h-20 bg-gray-50 animate-pulse rounded-lg" />
         ) : broadcasts.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-400 font-medium">

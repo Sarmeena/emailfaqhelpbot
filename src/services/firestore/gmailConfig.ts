@@ -19,16 +19,36 @@ export interface GmailConfig {
 const CONFIG_DOC_PATH = ["settings", "gmail"] as const;
 
 /** Retrieve Gmail configuration details */
-export async function getGmailConfig(): Promise<GmailConfig | null> {
+export async function getGmailConfig(token?: string): Promise<GmailConfig | null> {
   try {
+    let data: any = null;
     if (typeof window === "undefined") {
-      const { ensureServerAuth } = await import("../../utils/apiAuth");
-      await ensureServerAuth();
+      try {
+        const { adminDb } = await import("../../lib/firebaseAdmin");
+        if (!adminDb) {
+          throw new Error("Admin Database is not initialized (module not installed)");
+        }
+        const docSnap = await adminDb.collection(CONFIG_DOC_PATH[0]).doc(CONFIG_DOC_PATH[1]).get();
+        if (docSnap.exists) {
+          data = docSnap.data();
+        }
+      } catch (adminError) {
+        console.warn("[gmailConfig] Admin SDK get failed, falling back to REST API:", adminError);
+        const { getFirestoreDocREST, parseRESTFields } = await import("../../utils/apiAuth");
+        const docData = await getFirestoreDocREST(CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1], token);
+        if (docData) {
+          data = parseRESTFields(docData.fields);
+        }
+      }
+    } else {
+      const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        data = snapshot.data();
+      }
     }
-    const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
-    const snapshot = await getDoc(docRef);
-    if (snapshot.exists()) {
-      const data = snapshot.data();
+
+    if (data) {
       let updated = false;
 
       // Env fallbacks
@@ -114,7 +134,22 @@ export async function getGmailConfig(): Promise<GmailConfig | null> {
 
       if (updated) {
         console.log("[gmailConfig] Saving updated configuration back to Firestore settings/gmail");
-        await setDoc(docRef, merged);
+        if (typeof window === "undefined") {
+          try {
+            const { adminDb } = await import("../../lib/firebaseAdmin");
+            if (!adminDb) {
+              throw new Error("Admin Database is not initialized (module not installed)");
+            }
+            await adminDb.collection(CONFIG_DOC_PATH[0]).doc(CONFIG_DOC_PATH[1]).set(merged);
+          } catch (adminError) {
+            console.warn("[gmailConfig] Admin SDK set failed in auto-healing, falling back to REST API:", adminError);
+            const { setFirestoreDocREST } = await import("../../utils/apiAuth");
+            await setFirestoreDocREST(CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1], merged, token);
+          }
+        } else {
+          const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
+          await setDoc(docRef, merged);
+        }
       }
 
       return merged as GmailConfig;
@@ -126,14 +161,9 @@ export async function getGmailConfig(): Promise<GmailConfig | null> {
 }
 
 /** Save/Update Gmail config details */
-export async function saveGmailConfig(config: Partial<GmailConfig>): Promise<void> {
+export async function saveGmailConfig(config: Partial<GmailConfig>, token?: string): Promise<void> {
   try {
-    if (typeof window === "undefined") {
-      const { ensureServerAuth } = await import("../../utils/apiAuth");
-      await ensureServerAuth();
-    }
-    const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
-    const current = await getGmailConfig();
+    const current = await getGmailConfig(token);
     const newData = {
       clientId: "",
       clientSecret: "",
@@ -153,7 +183,23 @@ export async function saveGmailConfig(config: Partial<GmailConfig>): Promise<voi
       ...current,
       ...config,
     };
-    await setDoc(docRef, newData);
+
+    if (typeof window === "undefined") {
+      try {
+        const { adminDb } = await import("../../lib/firebaseAdmin");
+        if (!adminDb) {
+          throw new Error("Admin Database is not initialized (module not installed)");
+        }
+        await adminDb.collection(CONFIG_DOC_PATH[0]).doc(CONFIG_DOC_PATH[1]).set(newData);
+      } catch (adminError) {
+        console.warn("[gmailConfig] Admin SDK set failed in save, falling back to REST API:", adminError);
+        const { setFirestoreDocREST } = await import("../../utils/apiAuth");
+        await setFirestoreDocREST(CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1], newData, token);
+      }
+    } else {
+      const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
+      await setDoc(docRef, newData);
+    }
   } catch (error) {
     console.error("Error saving Gmail config:", error);
     throw error;
@@ -161,14 +207,9 @@ export async function saveGmailConfig(config: Partial<GmailConfig>): Promise<voi
 }
 
 /** Disconnect Gmail account, wiping access credentials */
-export async function disconnectGmail(): Promise<void> {
+export async function disconnectGmail(token?: string): Promise<void> {
   try {
-    if (typeof window === "undefined") {
-      const { ensureServerAuth } = await import("../../utils/apiAuth");
-      await ensureServerAuth();
-    }
-    const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
-    await setDoc(docRef, {
+    const newData = {
       clientId: "",
       clientSecret: "",
       accessToken: "",
@@ -184,7 +225,24 @@ export async function disconnectGmail(): Promise<void> {
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.send"
       ],
-    });
+    };
+
+    if (typeof window === "undefined") {
+      try {
+        const { adminDb } = await import("../../lib/firebaseAdmin");
+        if (!adminDb) {
+          throw new Error("Admin Database is not initialized (module not installed)");
+        }
+        await adminDb.collection(CONFIG_DOC_PATH[0]).doc(CONFIG_DOC_PATH[1]).set(newData);
+      } catch (adminError) {
+        console.warn("[gmailConfig] Admin SDK set failed in disconnect, falling back to REST API:", adminError);
+        const { setFirestoreDocREST } = await import("../../utils/apiAuth");
+        await setFirestoreDocREST(CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1], newData, token);
+      }
+    } else {
+      const docRef = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
+      await setDoc(docRef, newData);
+    }
   } catch (error) {
     console.error("Error disconnecting Gmail:", error);
     throw error;

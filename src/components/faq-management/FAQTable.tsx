@@ -3,7 +3,7 @@
 import { Pencil, Eye, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FAQ } from "../../services/firestore/faqs";
+import { FAQ, getFAQs } from "../../services/firestore/faqs";
 import { useAuth } from "../../context/AuthContext";
 
 import {
@@ -42,54 +42,50 @@ export default function FAQTable({
   category,
   status,
 }: FAQTableProps) {
-  const { role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFaq, setSelectedFaq] = useState<FAQ | null>(null);
 
   const filteredFAQs = faqs.filter((faq) => {
-  const matchesSearch =
-    faq.question
-      .toLowerCase()
-      .includes(search.toLowerCase()) ||
-    faq.answer
-      .toLowerCase()
-      .includes(search.toLowerCase());
+    const matchesSearch =
+      faq.question.toLowerCase().includes(search.toLowerCase()) ||
+      faq.answer.toLowerCase().includes(search.toLowerCase());
 
-  const matchesCategory =
-    category === "" ||
-    faq.category === category;
+    const matchesCategory = category === "" || faq.category === category;
 
-  const matchesStatus =
-    status === "" ||
-    (faq.status ?? "Published") === status;
+    const matchesStatus =
+      status === "" ||
+      (faq.status ?? "Published") === status;
 
-  return (
-    matchesSearch &&
-    matchesCategory &&
-    matchesStatus
-  );
-});
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesStatus
+    );
+  });
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function loadFAQs() {
       try {
-        const res = await fetch("/api/faqs");
-        if (res.ok) {
-          const json = await res.json();
-          setFaqs(json.faqs || []);
-        }
-      } catch (error) {
+        const data = await getFAQs();
+        setFaqs(data);
+      } catch (error: any) {
         console.error(error);
+        if (error.code === "permission-denied" || error.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] FAQTable loadFAQs denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
 
     loadFAQs();
-  }, []);
+  }, [user, role, authLoading]);
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <div className="rounded-xl border bg-white p-10 text-center text-gray-500 shadow-sm">
         Loading FAQs...

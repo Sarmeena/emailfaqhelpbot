@@ -1,28 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { Sparkles, RefreshCw } from "lucide-react";
 import { getDashboardStats } from "../../services/firestore/dashboard";
 
 export default function AIInsightCard() {
+  const { user, role, loading: authLoading } = useAuth();
   const [totalRequests, setTotalRequests] = useState(0);
   const [totalFaqs, setTotalFaqs] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function loadStats() {
       try {
         const stats = await getDashboardStats();
         setTotalRequests(stats.totalRequests || 0);
         setTotalFaqs(stats.totalFaqs || 0);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error loading stats for AIInsightCard:", err);
+        if (err.code === "permission-denied" || err.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] AIInsightCard dashboard query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
     loadStats();
-  }, []);
+  }, [user, role, authLoading]);
 
   const totalGenerated = totalRequests > 0 ? totalRequests * 2 + 14 : 14;
   const accuracyPercent = totalFaqs > 0 ? Math.min(98.5, 90 + totalFaqs * 1.5).toFixed(1) : "94.2";
@@ -37,7 +44,7 @@ export default function AIInsightCard() {
           </h2>
         </div>
 
-        {loading ? (
+        {authLoading || !user || !role || loading ? (
           <div className="flex flex-col items-center justify-center py-6 gap-2">
             <RefreshCw className="h-5 w-5 animate-spin" />
             <span className="text-xs text-blue-200">Analyzing metrics...</span>

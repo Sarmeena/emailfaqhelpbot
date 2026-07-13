@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { Mail, CheckCircle2, AlertCircle, RefreshCw, LogOut, Key, Radio } from "lucide-react";
 import { getGmailConfig, saveGmailConfig, disconnectGmail, GmailConfig } from "../../services/firestore/gmailConfig";
 
 export default function SettingsGmail() {
+  const { user, role, loading: authLoading } = useAuth();
   const [config, setConfig] = useState<GmailConfig | null>(null);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -14,6 +16,8 @@ export default function SettingsGmail() {
   const [watchLoading, setWatchLoading] = useState(false);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function loadConfig() {
       try {
         const data = await getGmailConfig();
@@ -23,14 +27,17 @@ export default function SettingsGmail() {
           setClientSecret(data.clientSecret || "");
           setPubSubTopic(data.pubSubTopic || "");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
+        if (error.code === "permission-denied" || error.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] SettingsGmail query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
     loadConfig();
-  }, []);
+  }, [user, role, authLoading]);
 
   async function handleSimulate() {
     setActionLoading(true);
@@ -64,14 +71,6 @@ export default function SettingsGmail() {
     }
     setActionLoading(true);
     try {
-      // Save credentials first client-side (using authenticated browser context)
-      await saveGmailConfig({
-        clientId,
-        clientSecret,
-        connected: false,
-        isSimulated: false,
-      });
-
       const res = await fetch("/api/gmail/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -139,7 +138,7 @@ export default function SettingsGmail() {
     }
   }
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm flex items-center justify-center py-10">
         <RefreshCw className="h-6 w-6 animate-spin text-primary" />

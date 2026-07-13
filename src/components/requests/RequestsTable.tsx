@@ -23,7 +23,7 @@ interface RequestsTableProps {
 }
 
 export default function RequestsTable({ filter }: RequestsTableProps) {
-  const { role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const isReadOnly = role === "viewer";
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +31,8 @@ export default function RequestsTable({ filter }: RequestsTableProps) {
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     let mounted = true;
     const fetchRequests = async () => {
       try {
@@ -39,14 +41,17 @@ export default function RequestsTable({ filter }: RequestsTableProps) {
           setRequests(data);
           setLoading(false);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
+        if (error.code === "permission-denied" || error.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] RequestsTable getRequests denied. UID: ${user?.uid}, Role: ${role}`);
+        }
         if (mounted) setLoading(false);
       }
     };
     fetchRequests();
     return () => { mounted = false; };
-  }, []);
+  }, [user, role, authLoading]);
 
   const refresh = async () => {
     const data = await getRequests();
@@ -107,7 +112,7 @@ export default function RequestsTable({ filter }: RequestsTableProps) {
     Resolved: "bg-green-100 text-green-700",
   };
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <div className="hidden rounded-2xl bg-white p-8 md:block text-center text-gray-500">
         Loading requests...

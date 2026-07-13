@@ -1,16 +1,14 @@
-# Implementation Plan: Resolve Server-Side App Check Permissions Errors
+# Implementation Plan: Resolve Shared Authorization Problem using Firebase Admin SDK
 
-This plan addresses the Next.js server-side API errors (`Failed to sign in system admin` and `API authorization check failed` with `Missing or insufficient permissions`) which occur because Next.js API routes run server-side and use the Firebase Client SDK to query Firestore. Since App Check is enforced at the project level, these server-side client calls fail because Node.js lacks App Check token verification.
-
-To resolve this, we will use the registered App Check debug token on the server side using a `CustomProvider` that RESTfully exchanges the debug token for a valid App Check token.
+This plan addresses the shared authorization issue where `POST /api/settings/gemini` and `POST /api/gmail/auth` return `401 Unauthorized` due to `FirebaseError: Missing or insufficient permissions`. We will replace the server-side client/REST API reads with the Firebase Admin SDK and implement detailed logging.
 
 ---
 
 ## User Review Required
 
 > [!IMPORTANT]
-> - **Environment Variables**: We will define `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` in `.env.local` with the registered debug token (`c9d67396-82a9-466b-a59c-a59423ce86e6`).
-> - **Shared Token**: By sharing this token between client and server, both the browser and the Next.js server-side API routes will be able to authenticate successfully against Firebase App Check.
+> - **Environment Variables**: For production/Vercel, verify that the environment variables `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` are configured.
+> - **Local Development Fallback**: On localhost, if the Firebase Admin service account credentials are not configured, the logic will automatically fall back to the existing client/REST API authentication mechanism to avoid blocking developer workflows.
 
 ---
 
@@ -22,107 +20,66 @@ There are no open questions.
 
 ## Proposed Changes
 
-### Component: Environment Variables
+### Component: Firebase Admin SDK Setup
 
-#### [MODIFY] [.env.local](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/.env.local)
-- Add `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` to store the registered debug token.
-```
-NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN=c9d67396-82a9-466b-a59c-a59423ce86e6
-```
+#### [NEW] [firebaseAdmin.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/lib/firebaseAdmin.ts)
+- Initialize the Firebase Admin SDK as a singleton.
+- Look for `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` environment variables. If present, initialize using the certificate.
+- Otherwise, fall back to initialization with the default project ID configuration.
+- Export `adminDb` and `adminAuth` helpers.
 
 ---
 
-### Component: Firebase Configuration
+### Component: Shared Authorization Helper
 
-#### [MODIFY] [firebase.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/lib/firebase.ts)
-- Update client App Check initialization to use the environment variable if present.
-- Implement server-side App Check initialization using `CustomProvider` to RESTfully exchange the debug token.
-```typescript
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import {
-  initializeAppCheck,
-  ReCaptchaEnterpriseProvider,
-  CustomProvider,
-} from "firebase/app-check";
+#### [MODIFY] [apiAuth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/utils/apiAuth.ts)
+- Add imports for `adminDb` and `adminAuth` from `../lib/firebaseAdmin` inside functions or check if they are initialized.
+- Refactor `checkAuthAndRole()`:
+  - Add detailed logging of:
+    - Incoming request pathname.
+    - Presence and value of the `Authorization` header.
+    - Verification state of the Firebase ID token.
+    - Decoded UID and email.
+    - User document existence in Firestore.
+    - User's role value from Firestore.
+    - Final authorization decision (Authorized, 401 Unauthorized, 403 Forbidden).
+  - Attempt to verify the token via the Firebase Admin SDK (`adminAuth.verifyIdToken(token)`).
+  - If verification succeeds, retrieve the user document `/users/{uid}` via the Firebase Admin SDK (`adminDb`).
+  - If Admin SDK calls fail (e.g. missing credentials on localhost), fall back to the custom signature verification (`verifyFirebaseToken`) and the Firestore REST API (`getFirestoreDocREST`).
+  - Verify that the target user document exists and check if the role matches the required role (e.g. `"admin"`).
+  - Return `401 Unauthorized` only when the user is truly unauthenticated or validation fails.
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-};
+---
 
-// Initialize Firebase only once
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+### Component: Firestore Config Services
 
-// Initialize App Check
-if (typeof window !== "undefined") {
-  try {
-    if (process.env.NODE_ENV === "development") {
-      // @ts-ignore
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN || true;
-    }
-    initializeAppCheck(app, {
-      provider: new ReCaptchaEnterpriseProvider(
-        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!
-      ),
-      isTokenAutoRefreshEnabled: true,
-    });
-  } catch (error) {
-    console.warn("App Check already initialized.");
-  }
-} else {
-  // Server-side (Node.js) App Check initialization for local development
-  if (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN) {
-    try {
-      initializeAppCheck(app, {
-        provider: new CustomProvider({
-          getToken: async () => {
-            const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!;
-            const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID!;
-            const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY!;
-            const debugToken = process.env.NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN!;
+#### [MODIFY] [geminiConfig.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/geminiConfig.ts)
+- Refactor `getGeminiConfig()` and `saveGeminiConfig()`:
+  - When running on the server (`typeof window === "undefined"`), attempt to read/write `settings/gemini` using the Firebase Admin SDK (`adminDb`).
+  - Fall back to the Firestore REST API (`getFirestoreDocREST` / `setFirestoreDocREST`) if the Admin SDK call fails or credentials are not configured.
 
-            const url = `https://firebaseappcheck.googleapis.com/v1/projects/${projectId}/apps/${appId}:exchangeDebugToken?key=${apiKey}`;
-            const res = await fetch(url, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ debugToken }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-              throw new Error(`Failed to exchange debug token: ${JSON.stringify(data)}`);
-            }
-            return {
-              token: data.token,
-              expireTimeMillis: Date.now() + (data.ttl ? parseInt(data.ttl) * 1000 : 3600000),
-            };
-          },
-        }),
-        isTokenAutoRefreshEnabled: true,
-      });
-      console.log("[Server App Check] Initialized App Check on server with CustomProvider.");
-    } catch (error) {
-      console.error("[Server App Check] Failed to initialize App Check on server:", error);
-    }
-  }
-}
-```
+#### [MODIFY] [gmailConfig.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/gmailConfig.ts)
+- Refactor `getGmailConfig()`, `saveGmailConfig()`, and `disconnectGmail()`:
+  - When running on the server (`typeof window === "undefined"`), attempt to read/write `settings/gmail` using the Firebase Admin SDK (`adminDb`).
+  - Fall back to the Firestore REST API (`getFirestoreDocREST` / `setFirestoreDocREST`) if the Admin SDK call fails or credentials are not configured.
+
+---
+
+### Component: Dependencies
+
+#### [MODIFY] [package.json](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/package.json)
+- Add `firebase-admin` dependency.
 
 ---
 
 ## Verification Plan
 
 ### Automated Tests
-- Run `npm run build` or let the Next.js HMR recompile.
+- Run `npm run build` to verify types and correct Next.js compilation.
 
 ### Manual Verification
-1. Open the local web application at `http://localhost:3000`.
-2. Inspect the terminal log for: `[Server App Check] Initialized App Check on server with CustomProvider.`
-3. Verify that `/settings` and `/analytics` load properly without the server-side API auth errors.
+1. Run `npm run dev` locally.
+2. Log in as an admin user on the frontend.
+3. Access Gemini and Gmail configuration pages and modify settings.
+4. Verify that requests to `POST /api/settings/gemini` and `POST /api/gmail/auth` complete with `200 OK`.
+5. Check terminal/server logs to verify detailed logs for `[API Auth Check]` outputs, showing the decrypted UID, document status, role, and authorization decision.

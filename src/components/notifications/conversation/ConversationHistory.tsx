@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../../context/AuthContext";
 import { Search } from "lucide-react";
 
-import { Conversation } from "../../../services/firestore/conversations";
+import { Conversation, getConversations } from "../../../services/firestore/conversations";
 
 interface ConversationHistoryProps {
   selectedConversation: string;
@@ -16,38 +17,40 @@ export default function ConversationHistory({
   onSelectConversation,
   isVisible = false,
 }: ConversationHistoryProps) {
+  const { user, role, loading: authLoading } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function loadConversations() {
       try {
-        const res = await fetch("/api/conversations");
-        if (res.ok) {
-          const json = await res.json();
-          const data = json.conversations || [];
-          
-          // Sort recent chats at the top by updatedAt seconds timestamp
-          const sorted = [...data].sort((a: any, b: any) => {
-            const aTime = a.updatedAt?.seconds || a.updatedAt?._seconds || 0;
-            const bTime = b.updatedAt?.seconds || b.updatedAt?._seconds || 0;
-            return bTime - aTime;
-          });
+        const data = await getConversations();
+        
+        // Sort recent chats at the top by updatedAt seconds timestamp
+        const sorted = [...data].sort((a: any, b: any) => {
+          const aTime = a.updatedAt?.seconds || a.updatedAt?._seconds || 0;
+          const bTime = b.updatedAt?.seconds || b.updatedAt?._seconds || 0;
+          return bTime - aTime;
+        });
 
-          setConversations(sorted);
-          if (sorted.length > 0 && !selectedConversation) {
-            onSelectConversation(sorted[0].id!, false);
-          }
+        setConversations(sorted);
+        if (sorted.length > 0 && !selectedConversation) {
+          onSelectConversation(sorted[0].id!, false);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
+        if (error.code === "permission-denied" || error.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] ConversationHistory query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
 
     loadConversations();
-  }, [selectedConversation, onSelectConversation]);
+  }, [selectedConversation, onSelectConversation, user, role, authLoading]);
 
   const formatChatTime = (updatedAt: any) => {
     if (!updatedAt) return "";
@@ -87,7 +90,7 @@ export default function ConversationHistory({
     return colors[Math.abs(hash) % colors.length];
   };
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <aside className={`w-full lg:w-80 shrink-0 border-r bg-white items-center justify-center ${
         isVisible ? "flex" : "hidden lg:flex"

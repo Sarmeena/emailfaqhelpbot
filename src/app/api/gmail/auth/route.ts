@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
     if (errorResponse) {
       return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
     }
+    const token = request.headers.get("authorization")?.split(" ")[1];
     const body = await request.json();
     const { action, clientId, clientSecret } = body;
     console.log("CLIENT ID =", clientId);
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
         connected: true,
         emailAddress: "support-sandbox@company.com",
         isSimulated: true,
-      });
+      }, token);
 
       return NextResponse.json({
         success: true,
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
           clientSecret,
           connected: false,
           isSimulated: false,
-        });
+        }, token);
         console.log("saveGmailConfig in auth/route completed successfully");
       } catch (err) {
         console.error("saveGmailConfig in auth/route failed:", err);
@@ -57,7 +58,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Construct Google OAuth URL
-      const redirectUri = "http://localhost:3000/api/gmail/callback";
+      const origin = new URL(request.url).origin;
+      const redirectUri = `${origin}/api/gmail/callback`;
       const scopes = [
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.send",

@@ -94,7 +94,11 @@ export default function FAQManagementPage() {
 
           {/* Mobile Cards */}
           <div className="md:hidden">
-            <FAQMobileList />
+            <FAQMobileList
+              search={search}
+              category={category}
+              status={status}
+            />
           </div>
 
         </main>

@@ -67,10 +67,24 @@ export async function POST(request: NextRequest) {
     const msgId = gmailMessages[0].id;
 
     // Check if we have already imported this message ID to avoid duplicates
-    const checkSnapshot = await getDocs(
-      query(collection(db, "requests"), where("gmailMessageId", "==", msgId))
-    );
-    if (!checkSnapshot.empty) {
+    let isAlreadyImported = false;
+    try {
+      const { adminDb } = await import("../../../../lib/firebaseAdmin");
+      if (adminDb) {
+        const checkSnapshot = await adminDb.collection("requests").where("gmailMessageId", "==", msgId).limit(1).get();
+        isAlreadyImported = !checkSnapshot.empty;
+      } else {
+        throw new Error("Admin SDK not initialized");
+      }
+    } catch (adminErr) {
+      console.warn("[WEBHOOK] Admin SDK duplicate check failed, trying Client SDK:", adminErr);
+      const checkSnapshot = await getDocs(
+        query(collection(db, "requests"), where("gmailMessageId", "==", msgId))
+      );
+      isAlreadyImported = !checkSnapshot.empty;
+    }
+
+    if (isAlreadyImported) {
       return NextResponse.json({ success: true, message: "Message already imported." });
     }
 
@@ -128,11 +142,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Save parallel details in Firestore
-    const requestDocRef = doc(collection(db, "requests"));
-    const docId = requestDocRef.id;
     const conversationId = threadId;
 
-    await setDoc(requestDocRef, {
+    const requestData = {
       requestId,
       threadId,
       customerName: fromName || fromEmail,
@@ -145,32 +157,74 @@ export async function POST(request: NextRequest) {
       gmailMessageId: msgId,
       gmailThreadId: detail.threadId || msgId,
       escalated,
-      createdAt: serverTimestamp(),
-    });
+      createdAt: new Date().toISOString(),
+    };
 
-    await setDoc(doc(db, "conversations", conversationId), {
+    const conversationData = {
       customerName: fromName || fromEmail,
       customerEmail: fromEmail,
       subject,
       status,
       lastMessage: reply.slice(0, 100) + "...",
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(),
       threadId,
-    }, { merge: true });
+    };
 
-    await addDoc(collection(db, "messages"), {
+    const msg1Data = {
       conversationId: conversationId,
       sender: fromName || fromEmail,
       message: body,
-      createdAt: serverTimestamp(),
-    });
+      createdAt: new Date().toISOString(),
+    };
 
-    await addDoc(collection(db, "messages"), {
+    const msg2Data = {
       conversationId: conversationId,
       sender: "AI Assistant",
       message: reply,
-      createdAt: serverTimestamp(),
-    });
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      const { adminDb } = await import("../../../../lib/firebaseAdmin");
+      if (adminDb) {
+        // Create request with auto ID
+        const reqRef = adminDb.collection("requests").doc();
+        await reqRef.set(requestData);
+        
+        // Create parallel conversation
+        await adminDb.collection("conversations").doc(conversationId).set(conversationData, { merge: true });
+        
+        // Add messages
+        await adminDb.collection("messages").add(msg1Data);
+        await adminDb.collection("messages").add(msg2Data);
+        console.log(`[WEBHOOK] Webhook imported message ${msgId} via Admin SDK.`);
+      } else {
+        throw new Error("Admin SDK not initialized");
+      }
+    } catch (adminErr) {
+      console.warn("[WEBHOOK] Admin SDK write failed, falling back to Client SDK:", adminErr);
+      // Fallback to Client SDK (using the signed-in system backend context)
+      const { doc: clientDoc, setDoc: clientSetDoc, collection: clientCollection, addDoc: clientAddDoc } = await import("firebase/firestore");
+      
+      const requestDocRef = clientDoc(clientCollection(db, "requests"));
+      await clientSetDoc(requestDocRef, {
+        ...requestData,
+        createdAt: serverTimestamp(),
+      });
+      await clientSetDoc(clientDoc(db, "conversations", conversationId), {
+        ...conversationData,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      await clientAddDoc(clientCollection(db, "messages"), {
+        ...msg1Data,
+        createdAt: serverTimestamp(),
+      });
+      await clientAddDoc(clientCollection(db, "messages"), {
+        ...msg2Data,
+        createdAt: serverTimestamp(),
+      });
+      console.log(`[WEBHOOK] Webhook imported message ${msgId} via Client SDK.`);
+    }
 
     // Extract original Message-ID from headers to reply correctly
     const messageIdHeader = headers.find((h: any) => h.name.toLowerCase() === "message-id")?.value || msgId;

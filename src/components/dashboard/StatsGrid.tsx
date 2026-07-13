@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import {
   Mail,
   CheckCircle,
@@ -14,6 +15,7 @@ import {
 } from "../../services/firestore/dashboard";
 
 export default function StatsGrid() {
+  const { user, role, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalRequests: 0,
     totalFaqs: 0,
@@ -28,19 +30,24 @@ export default function StatsGrid() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function fetchDashboard() {
       try {
         const data = await getDashboardStats();
         setStats(data);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Dashboard Error:", error);
+        if (error.code === "permission-denied" || error.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] StatsGrid dashboard query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
 
     fetchDashboard();
-  }, []);
+  }, [user, role, authLoading]);
 
   const cards = [
     {
@@ -81,7 +88,7 @@ export default function StatsGrid() {
     },
   ];
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <div className="flex items-center justify-center py-10">
         <p className="text-lg font-semibold text-gray-500">

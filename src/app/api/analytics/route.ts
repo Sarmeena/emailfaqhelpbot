@@ -3,7 +3,7 @@ import { getDashboardStats } from "../../../services/firestore/dashboard";
 import { collection, getDocs, getCountFromServer, query, where, orderBy, limit } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { getGmailConfig } from "../../../services/firestore/gmailConfig";
-import { checkAuthAndRole } from "../../../utils/apiAuth";
+import { checkAuthAndRole, ensureServerAuth } from "../../../utils/apiAuth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     if (errorResponse) {
       return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
     }
+
+    await ensureServerAuth();
 
     // 1. Fetch dashboard stats using existing service
     const baseStats = await getDashboardStats();
@@ -61,7 +63,12 @@ export async function GET(request: NextRequest) {
         status: data.status || "Open",
         priority: data.priority || "Medium",
         source: data.source || "Manual",
-        createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString()
+        createdAt: data.createdAt
+          ? (typeof data.createdAt.toDate === "function"
+              ? data.createdAt.toDate()
+              : new Date(data.createdAt.seconds ? data.createdAt.seconds * 1000 : data.createdAt)
+            ).toISOString()
+          : new Date().toISOString()
       };
     });
 
@@ -87,7 +94,9 @@ export async function GET(request: NextRequest) {
     chartSnapshot.docs.forEach((doc) => {
       const data = doc.data();
       if (data.createdAt) {
-        const reqDate = data.createdAt.toDate();
+        const reqDate = typeof data.createdAt.toDate === "function"
+          ? data.createdAt.toDate()
+          : new Date(data.createdAt.seconds ? data.createdAt.seconds * 1000 : data.createdAt);
         const dateString = reqDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
         if (dateString in dailyCounts) {
           dailyCounts[dateString]++;

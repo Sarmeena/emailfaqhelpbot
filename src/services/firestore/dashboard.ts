@@ -41,7 +41,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   requestsSnapshot.forEach((docSnapshot) => {
     const data = docSnapshot.data();
     if (data.createdAt) {
-      const date = data.createdAt.toDate();
+      const date = typeof data.createdAt.toDate === "function"
+        ? data.createdAt.toDate()
+        : new Date(data.createdAt.seconds ? data.createdAt.seconds * 1000 : data.createdAt);
       const hour = date.getHours();
       hourCounts[hour]++;
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import Link from "next/link";
 
 import {
@@ -17,20 +18,25 @@ import {
 } from "../../services/firestore/broadcasts";
 
 export default function BroadcastTable() {
+  const { user, role, loading: authLoading } = useAuth();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBroadcast, setSelectedBroadcast] = useState<Broadcast | null>(null);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
     loadBroadcasts();
-  }, []);
+  }, [user, role, authLoading]);
 
   async function loadBroadcasts() {
     try {
       const data = await getBroadcasts();
       setBroadcasts(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      if (error.code === "permission-denied" || error.message?.includes("permission")) {
+        console.error(`[Firestore Permission Failure] BroadcastTable campaigns query denied. UID: ${user?.uid}, Role: ${role}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -80,7 +86,7 @@ export default function BroadcastTable() {
     }
   }
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
         Loading broadcasts...

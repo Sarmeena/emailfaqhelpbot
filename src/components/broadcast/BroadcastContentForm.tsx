@@ -38,15 +38,11 @@ export default function BroadcastContentForm({
         }),
       });
 
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) {
-          onContentChange(json.content);
-        } else {
-          alert(json.error || "Failed to generate draft.");
-        }
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        onContentChange(json.content);
       } else {
-        alert("Failed to contact Gemini broadcast builder.");
+        alert(json?.error || "Failed to generate draft. Please check your Gemini settings.");
       }
     } catch (e) {
       console.error(e);

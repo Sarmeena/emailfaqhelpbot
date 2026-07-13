@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "../../../context/AuthContext";
 
 import Sidebar from "../../../components/layout/Sidebar";
 import Header from "../../../components/layout/Header";
@@ -18,6 +19,7 @@ import {
 } from "../../../services/firestore/broadcasts";
 
 export default function EditBroadcastClient() {
+    const { user, role, loading: authLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -38,6 +40,8 @@ export default function EditBroadcastClient() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (authLoading || !user || !role) return;
+
         async function loadBroadcast() {
             if (!id) {
                 setLoading(false);
@@ -60,8 +64,11 @@ export default function EditBroadcastClient() {
                 setScheduleTime(
                     (broadcast as any).scheduleTime ?? ""
                 );
-            } catch (error) {
+            } catch (error: any) {
                 console.error(error);
+                if (error.code === "permission-denied" || error.message?.includes("permission")) {
+                    console.error(`[Firestore Permission Failure] EditBroadcastClient getBroadcastById denied. UID: ${user?.uid}, Role: ${role}`);
+                }
                 alert("Unable to load broadcast.");
             } finally {
                 setLoading(false);
@@ -69,7 +76,7 @@ export default function EditBroadcastClient() {
         }
 
         loadBroadcast();
-    }, [id]);
+    }, [id, user, role, authLoading]);
 
     async function handleSave() {
         try {
@@ -181,7 +188,7 @@ export default function EditBroadcastClient() {
         router.push("/broadcasts");
     }
 
-    if (loading) {
+    if (authLoading || !user || !role || loading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 Loading Broadcast...

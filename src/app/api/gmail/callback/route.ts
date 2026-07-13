@@ -4,6 +4,7 @@ import { ensureServerAuth } from "../../../../utils/apiAuth";
 
 export async function GET(request: NextRequest) {
   await ensureServerAuth();
+  const origin = new URL(request.url).origin;
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
@@ -11,11 +12,11 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error("OAuth error returned from Google:", error);
-    return NextResponse.redirect("http://localhost:3000/settings?gmail_error=" + encodeURIComponent(error));
+    return NextResponse.redirect(`${origin}/settings?gmail_error=${encodeURIComponent(error)}`);
   }
 
   if (!code) {
-    return NextResponse.redirect("http://localhost:3000/settings?gmail_error=no_code_provided");
+    return NextResponse.redirect(`${origin}/settings?gmail_error=no_code_provided`);
   }
 
   try {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
       throw new Error("Client credentials not configured or missing in database.");
     }
 
-    const redirectUri = "http://localhost:3000/api/gmail/callback";
+    const redirectUri = `${origin}/api/gmail/callback`;
 
     // Exchange auth code for tokens
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -87,10 +88,10 @@ export async function GET(request: NextRequest) {
       isSimulated: false,
     });
 
-    return NextResponse.redirect("http://localhost:3000/settings?gmail_success=true");
+    return NextResponse.redirect(`${origin}/settings?gmail_success=true`);
   } catch (err) {
     console.error("OAuth callback error:", err);
     const msg = err instanceof Error ? err.message : "unknown";
-    return NextResponse.redirect(`http://localhost:3000/settings?gmail_error=${encodeURIComponent(msg)}`);
+    return NextResponse.redirect(`${origin}/settings?gmail_error=${encodeURIComponent(msg)}`);
   }
 }

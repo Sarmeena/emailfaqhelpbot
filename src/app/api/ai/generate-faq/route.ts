@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDoc, doc, collection, query, where, orderBy, getDocs } from "firebase/firestore";
-import { db } from "../../../../lib/firebase";
+import { db, auth } from "../../../../lib/firebase";
 import { GoogleGenAI } from "@google/genai";
 import { getGeminiConfig } from "../../../../services/firestore/geminiConfig";
 import { checkAuthAndRole } from "../../../../utils/apiAuth";
@@ -19,25 +18,51 @@ export async function POST(request: NextRequest) {
     }
 
     let ticket = null;
-    const requestsRef = collection(db, "requests");
-    const q = query(
-      requestsRef,
-      where("threadId", "==", conversationId)
-    );
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      const docs = [...querySnapshot.docs];
-      docs.sort((a: any, b: any) => {
-        const aTime = a.data().createdAt?.seconds || a.data().createdAt?._seconds || 0;
-        const bTime = b.data().createdAt?.seconds || b.data().createdAt?._seconds || 0;
-        return bTime - aTime;
+
+    // Structured query via Firestore REST API to find request with threadId
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+    
+    const token = request.headers.get("authorization")?.split(" ")[1];
+    if (token) {
+      const queryPayload = {
+        structuredQuery: {
+          from: [{ collectionId: "requests" }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: "threadId" },
+              op: "EQUAL",
+              value: { stringValue: conversationId }
+            }
+          },
+          limit: 1
+        }
+      };
+
+      const qRes = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(queryPayload)
       });
-      ticket = docs[0].data();
-    } else {
-      // Fallback: direct get (legacy)
-      const requestDoc = await getDoc(doc(db, "requests", conversationId));
-      if (requestDoc.exists()) {
-        ticket = requestDoc.data();
+
+      if (qRes.ok) {
+        const results = await qRes.json();
+        if (results && results.length > 0 && results[0].document) {
+          const { parseRESTFields } = await import("../../../../utils/apiAuth");
+          ticket = parseRESTFields(results[0].document.fields);
+        }
+      }
+    }
+
+    if (!ticket) {
+      // Fallback: direct document get via REST using the client token
+      const { getFirestoreDocREST, parseRESTFields } = await import("../../../../utils/apiAuth");
+      const docData = await getFirestoreDocREST("requests", conversationId, token || undefined);
+      if (docData) {
+        ticket = parseRESTFields(docData.fields);
       }
     }
 
@@ -48,9 +73,9 @@ export async function POST(request: NextRequest) {
     const customerText = ticket.message || "";
     const subject = ticket.subject || "";
 
-    const config = await getGeminiConfig();
+    const config = await getGeminiConfig(token || undefined);
     const apiKey = config?.apiKey || process.env.GEMINI_API_KEY;
-    const model = config?.model || "gemini-2.5-flash";
+    const model = config?.model || "gemini-3.5-flash";
 
     if (!apiKey) {
       return NextResponse.json({ success: false, error: "Gemini API key is not configured in settings." }, { status: 400 });
@@ -98,13 +123,34 @@ Respond ONLY in JSON format matching this schema:
       });
     } catch (apiError: any) {
       console.error("Gemini API Error in generate-faq:", apiError);
-      const isQuota = apiError?.message?.includes("quota") || apiError?.message?.includes("429") || apiError?.status === 429 || apiError?.code === 429;
-      const errorMsg = isQuota
-        ? "Gemini API rate limit or daily free quota exceeded. Please try again later or configure a custom API key in Settings."
-        : (apiError instanceof Error ? apiError.message : "Gemini AI generation failed");
+      
+      const errorMessage = apiError?.message || "";
+      const isInvalidKey = errorMessage.includes("API key not valid") || 
+                           errorMessage.includes("API_KEY_INVALID") || 
+                           apiError?.status === 400 || 
+                           apiError?.code === 400;
+                           
+      const isQuota = errorMessage.includes("quota") || 
+                      errorMessage.includes("429") || 
+                      apiError?.status === 429 || 
+                      apiError?.code === 429;
+
+      let errorMsg = "Gemini AI generation failed.";
+      let statusCode = 500;
+
+      if (isInvalidKey) {
+        errorMsg = "Invalid Gemini API key. Please check and configure a valid Gemini API key in Settings.";
+        statusCode = 400;
+      } else if (isQuota) {
+        errorMsg = "Gemini API rate limit or daily free quota exceeded. Please configure a custom API key in Settings or try again later.";
+        statusCode = 429;
+      } else if (apiError instanceof Error) {
+        errorMsg = apiError.message;
+      }
+
       return NextResponse.json(
         { success: false, error: errorMsg },
-        { status: isQuota ? 429 : 500 }
+        { status: statusCode }
       );
     }
 

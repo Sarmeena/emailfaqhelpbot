@@ -1,26 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { getRecentRequests, Request } from "../../services/firestore/requests";
 import Link from "next/link";
 
 export default function RecentRequests() {
+  const { user, role, loading: authLoading } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function loadRequests() {
       try {
         const data = await getRecentRequests(3);
         setRequests(data);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error loading recent requests:", err);
+        if (err.code === "permission-denied" || err.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] RecentRequests query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
     loadRequests();
-  }, []);
+  }, [user, role, authLoading]);
 
   const getInitials = (name: string) => {
     if (!name) return "US";
@@ -61,7 +68,7 @@ export default function RecentRequests() {
 
       {/* Request Cards */}
       <div className="space-y-4">
-        {loading ? (
+        {authLoading || !user || !role || loading ? (
           <div className="h-24 rounded-xl border bg-white animate-pulse" />
         ) : requests.length === 0 ? (
           <div className="rounded-xl border bg-white p-6 text-center text-sm text-gray-400 font-medium">

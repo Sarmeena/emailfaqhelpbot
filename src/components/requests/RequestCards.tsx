@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import Link from "next/link";
 import {
   getRequests,
@@ -28,14 +29,23 @@ interface RequestCardsProps {
 }
 
 export default function RequestCards({ filter }: RequestCardsProps) {
+  const { user, role, loading: authLoading } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     getRequests()
       .then(setRequests)
+      .catch((error: any) => {
+        console.error("Error in RequestCards getRequests:", error);
+        if (error.code === "permission-denied" || error.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] RequestCards getRequests denied. UID: ${user?.uid}, Role: ${role}`);
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user, role, authLoading]);
 
   const refresh = async () => {
     const data = await getRequests();
@@ -62,7 +72,7 @@ export default function RequestCards({ filter }: RequestCardsProps) {
     return true;
   });
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return <div className="md:hidden p-6 text-center text-gray-400">Loading requests...</div>;
   }
 

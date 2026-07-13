@@ -10,9 +10,11 @@ import {
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { getBroadcasts, Broadcast } from "../../services/firestore/broadcasts";
 
 export default function BroadcastStats() {
+  const { user, role, loading: authLoading } = useAuth();
   const [totalSent, setTotalSent] = useState(0);
   const [openRate, setOpenRate] = useState(0);
   const [replyRate, setReplyRate] = useState(0);
@@ -20,6 +22,8 @@ export default function BroadcastStats() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function loadStats() {
       try {
         const broadcasts = await getBroadcasts();
@@ -51,19 +55,24 @@ export default function BroadcastStats() {
           setOpenRate(0);
           setReplyRate(0);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("Error loading stats:", e);
+        if (e.code === "permission-denied" || e.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] BroadcastStats query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
     loadStats();
-  }, []);
+  }, [user, role, authLoading]);
+
+  const isStatsLoading = authLoading || !user || !role || loading;
 
   const stats = [
     {
       title: "Total Sent",
-      value: loading ? "..." : String(totalSent),
+      value: isStatsLoading ? "..." : String(totalSent),
       icon: Send,
       badge: "+12%",
       positive: true,
@@ -72,7 +81,7 @@ export default function BroadcastStats() {
     },
     {
       title: "Avg. Open Rate",
-      value: loading ? "..." : `${openRate}%`,
+      value: isStatsLoading ? "..." : `${openRate}%`,
       icon: Eye,
       badge: "+4%",
       positive: true,
@@ -81,7 +90,7 @@ export default function BroadcastStats() {
     },
     {
       title: "Avg. Reply Rate",
-      value: loading ? "..." : `${replyRate}%`,
+      value: isStatsLoading ? "..." : `${replyRate}%`,
       icon: Reply,
       badge: "-2%",
       positive: false,
@@ -90,7 +99,7 @@ export default function BroadcastStats() {
     },
     {
       title: "Scheduled",
-      value: loading ? "..." : String(scheduled),
+      value: isStatsLoading ? "..." : String(scheduled),
       icon: Clock,
       iconBg: "bg-gray-100",
       iconColor: "text-gray-600",

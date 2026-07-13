@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/layout/Sidebar";
 import Header from "../../components/layout/Header";
 import MobileNav from "../../components/layout/MobileNav";
@@ -17,6 +18,10 @@ import {
   Mail,
   User,
 } from "lucide-react";
+import { collection, getDocs, getCountFromServer, query, where, orderBy, limit } from "firebase/firestore";
+import { db } from "../../lib/firebase";
+import { getDashboardStats } from "../../services/firestore/dashboard";
+import { getGmailConfig } from "../../services/firestore/gmailConfig";
 
 interface AnalyticsData {
   totalRequests: number;
@@ -59,27 +64,145 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
+  const { user, role, loading: authLoading } = useAuth();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !user || !role) return;
+
     async function fetchAnalytics() {
       try {
-        const res = await fetch("/api/analytics");
-        if (res.ok) {
-          const json = await res.json();
-          setData(json.stats);
+        // 1. Fetch dashboard stats using existing service
+        const baseStats = await getDashboardStats();
+
+        // 2. Fetch Priority Breakdown
+        const highPriorityQuery = query(collection(db, "requests"), where("priority", "==", "High"));
+        const mediumPriorityQuery = query(collection(db, "requests"), where("priority", "==", "Medium"));
+        const lowPriorityQuery = query(collection(db, "requests"), where("priority", "==", "Low"));
+
+        const [highCount, mediumCount, lowCount] = await Promise.all([
+          getCountFromServer(highPriorityQuery),
+          getCountFromServer(mediumPriorityQuery),
+          getCountFromServer(lowPriorityQuery)
+        ]);
+
+        // 3. Fetch Source Breakdown
+        const gmailSourceQuery = query(collection(db, "requests"), where("source", "==", "Gmail"));
+        const manualSourceQuery = query(collection(db, "requests"), where("source", "==", "Manual"));
+
+        const [gmailCount, manualCount] = await Promise.all([
+          getCountFromServer(gmailSourceQuery),
+          getCountFromServer(manualSourceQuery)
+        ]);
+
+        // 4. Fetch Gmail Connection Status
+        const gmailConfig = await getGmailConfig();
+        const gmailStatus = {
+          connected: gmailConfig?.connected || false,
+          isSimulated: gmailConfig?.isSimulated || false,
+          watchExpiration: gmailConfig?.watchExpiration || null,
+          email: gmailConfig?.emailAddress || "Not Connected"
+        };
+
+        // 5. Generate recent activity timeline (last 5 requests created)
+        const recentQuery = query(
+          collection(db, "requests"),
+          orderBy("createdAt", "desc"),
+          limit(5)
+        );
+        const recentSnapshot = await getDocs(recentQuery);
+        const recentActivity = recentSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            customerName: data.customerName || "Unknown Customer",
+            customerEmail: data.customerEmail || "",
+            subject: data.subject || "No Subject",
+            status: data.status || "Open",
+            priority: data.priority || "Medium",
+            source: data.source || "Manual",
+            createdAt: data.createdAt
+              ? (typeof data.createdAt.toDate === "function"
+                  ? data.createdAt.toDate()
+                  : new Date(data.createdAt.seconds ? data.createdAt.seconds * 1000 : data.createdAt)
+                ).toISOString()
+              : new Date().toISOString()
+          };
+        });
+
+        // 6. Compute daily creation metrics for charting (last 7 days counts)
+        const dailyCounts: Record<string, number> = {};
+        const today = new Date();
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(today.getDate() - i);
+          const dateString = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          dailyCounts[dateString] = 0;
         }
-      } catch (err) {
+
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        const chartQuery = query(
+          collection(db, "requests"),
+          where("createdAt", ">=", sevenDaysAgo)
+        );
+        const chartSnapshot = await getDocs(chartQuery);
+
+        chartSnapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          if (data.createdAt) {
+            const reqDate = typeof data.createdAt.toDate === "function"
+              ? data.createdAt.toDate()
+              : new Date(data.createdAt.seconds ? data.createdAt.seconds * 1000 : data.createdAt);
+            const dateString = reqDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            if (dateString in dailyCounts) {
+              dailyCounts[dateString]++;
+            }
+          }
+        });
+
+        const chartData = Object.entries(dailyCounts).map(([date, count]) => ({
+          date,
+          count
+        }));
+
+        setData({
+          totalRequests: baseStats.totalRequests,
+          totalFaqs: baseStats.totalFaqs,
+          totalBroadcasts: baseStats.totalBroadcasts,
+          openRequests: baseStats.openRequests,
+          resolvedRequests: baseStats.resolvedRequests,
+          inProgressRequests: baseStats.inProgressRequests,
+          peakHour: baseStats.peakHour,
+          topFaqs: baseStats.topFaqs,
+          priorityBreakdown: {
+            high: highCount.data().count,
+            medium: mediumCount.data().count,
+            low: lowCount.data().count
+          },
+          sourceBreakdown: {
+            gmail: gmailCount.data().count,
+            manual: manualCount.data().count
+          },
+          gmailStatus,
+          recentActivity,
+          chartData
+        });
+      } catch (err: any) {
         console.error("Failed to load analytics data", err);
+        if (err.code === "permission-denied" || err.message?.includes("permission")) {
+          console.error(`[Firestore Permission Failure] AnalyticsPage query denied. UID: ${user?.uid}, Role: ${role}`);
+        }
       } finally {
         setLoading(false);
       }
     }
     fetchAnalytics();
-  }, []);
+  }, [user, role, authLoading]);
 
-  if (loading) {
+  if (authLoading || !user || !role || loading) {
     return (
       <ProtectedRoute allowedRoles={["admin"]}>
         <div className="flex min-h-screen bg-gray-100">

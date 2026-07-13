@@ -47,12 +47,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Allocate unified ID to link Requests and Conversations
-    const requestDocRef = doc(collection(db, "requests"));
-    const docId = requestDocRef.id;
     const conversationId = threadId;
 
-    // Create request
-    await setDoc(requestDocRef, {
+    const requestData = {
       requestId,
       threadId,
       customerName: fromName || from,
@@ -65,35 +62,69 @@ export async function POST(request: NextRequest) {
       gmailMessageId: id,
       gmailThreadId: id,
       escalated,
-      createdAt: serverTimestamp(),
-    });
+      createdAt: new Date().toISOString(),
+    };
 
-    // Create parallel conversation (grouped by threadId)
-    await setDoc(doc(db, "conversations", conversationId), {
+    const conversationData = {
       customerName: fromName || from,
       customerEmail: from,
       subject,
       status,
       lastMessage: reply.slice(0, 100) + "...",
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(),
       threadId,
-    }, { merge: true });
+    };
 
-    // Add inbound message
-    await addDoc(collection(db, "messages"), {
+    const msg1Data = {
       conversationId: conversationId,
       sender: fromName || from,
       message: body,
-      createdAt: serverTimestamp(),
-    });
+      createdAt: new Date().toISOString(),
+    };
 
-    // Add automated reply message
-    await addDoc(collection(db, "messages"), {
+    const msg2Data = {
       conversationId: conversationId,
       sender: "AI Assistant",
       message: reply,
-      createdAt: serverTimestamp(),
-    });
+      createdAt: new Date().toISOString(),
+    };
+
+    const firebaseToken = request.headers.get("authorization")?.split(" ")[1];
+
+    try {
+      const { adminDb } = await import("../../../../lib/firebaseAdmin");
+      if (adminDb) {
+        // Create request with auto ID
+        const reqRef = adminDb.collection("requests").doc();
+        await reqRef.set(requestData);
+        
+        // Create parallel conversation
+        await adminDb.collection("conversations").doc(conversationId).set(conversationData, { merge: true });
+        
+        // Add messages
+        await adminDb.collection("messages").add(msg1Data);
+        await adminDb.collection("messages").add(msg2Data);
+        console.log(`[IMPORT] Imported email ${id} via Admin SDK.`);
+      } else {
+        throw new Error("Admin SDK not initialized");
+      }
+    } catch (adminErr) {
+      console.warn("[IMPORT] Admin SDK write failed, trying REST API fallback:", adminErr);
+      if (!firebaseToken) {
+        throw new Error("No firebaseToken provided for REST fallback in import route");
+      }
+      const { setFirestoreDocREST } = await import("../../../../utils/apiAuth");
+      
+      const randomReqId = Math.random().toString(36).substring(2, 15);
+      const randomMsg1Id = Math.random().toString(36).substring(2, 15);
+      const randomMsg2Id = Math.random().toString(36).substring(2, 15);
+
+      await setFirestoreDocREST("requests", randomReqId, requestData, firebaseToken);
+      await setFirestoreDocREST("conversations", conversationId, conversationData, firebaseToken);
+      await setFirestoreDocREST("messages", randomMsg1Id, msg1Data, firebaseToken);
+      await setFirestoreDocREST("messages", randomMsg2Id, msg2Data, firebaseToken);
+      console.log(`[IMPORT] Imported email ${id} via REST API.`);
+    }
 
     return NextResponse.json({
       success: true,

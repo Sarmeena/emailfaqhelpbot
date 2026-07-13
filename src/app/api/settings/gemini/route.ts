@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
     if (errorResponse) {
       return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
     }
-    const config = await getGeminiConfig();
+    const token = request.headers.get("authorization")?.split(" ")[1];
+    const config = await getGeminiConfig(token);
     return NextResponse.json({ success: true, config });
   } catch (error) {
     console.error("GET Gemini config API error:", error);
@@ -25,8 +26,9 @@ export async function POST(request: NextRequest) {
     if (errorResponse) {
       return NextResponse.json({ success: false, error: errorResponse.error }, { status: errorResponse.status });
     }
+    const token = request.headers.get("authorization")?.split(" ")[1];
     const body = await request.json();
-    await saveGeminiConfig(body);
+    await saveGeminiConfig(body, token);
     return NextResponse.json({ success: true, message: "Gemini configuration saved successfully" });
   } catch (error) {
     console.error("POST Gemini config API error:", error);
