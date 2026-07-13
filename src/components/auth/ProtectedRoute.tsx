@@ -20,7 +20,10 @@ export default function ProtectedRoute({
     if (!loading) {
       if (!user) {
         router.replace("/login");
-      } else if (allowedRoles && !allowedRoles.includes(role || "")) {
+      } else if (!role || role === "error") {
+        console.warn(`[ProtectedRoute] Blocking access because user role could not be loaded. UID: ${user.uid}, Role: ${role}`);
+        router.replace("/unauthorized");
+      } else if (allowedRoles && !allowedRoles.includes(role)) {
         router.replace("/unauthorized");
       }
     }
@@ -37,7 +40,7 @@ export default function ProtectedRoute({
     );
   }
 
-  if (!user || (allowedRoles && !allowedRoles.includes(role || ""))) {
+  if (!user || !role || role === "error" || (allowedRoles && !allowedRoles.includes(role))) {
     return null;
   }
 

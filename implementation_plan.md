@@ -1,85 +1,58 @@
-# Implementation Plan: Resolve Shared Authorization Problem using Firebase Admin SDK
+# Audit and Implementation Plan: Post-Deployment Auth, App Check, and RBAC Issues on Vercel
 
-This plan addresses the shared authorization issue where `POST /api/settings/gemini` and `POST /api/gmail/auth` return `401 Unauthorized` due to `FirebaseError: Missing or insufficient permissions`. We will replace the server-side client/REST API reads with the Firebase Admin SDK and implement detailed logging.
-
----
+Provide a thorough audit of the project to identify the root cause of role and data access issues in production on Vercel. After deployment, authentication succeeds, but all users (Admin/Agent/Viewer) are treated as Viewers and the dashboard contains no data, accompanied by App Check reCAPTCHA errors. This plan outlines proposed logging and code changes to diagnose and resolve these issues.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> - **Environment Variables**: For production/Vercel, verify that the environment variables `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` are configured.
-> - **Local Development Fallback**: On localhost, if the Firebase Admin service account credentials are not configured, the logic will automatically fall back to the existing client/REST API authentication mechanism to avoid blocking developer workflows.
+> **Vercel Build-Time vs. Runtime Environment Variables**: Next.js client-side variables prefixed with `NEXT_PUBLIC_` are statically embedded into client bundles at **build time**. If these variables (such as `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` or `NEXT_PUBLIC_FIREBASE_PROJECT_ID`) were not defined in Vercel settings *before* running the Vercel build, the client code will default to empty values, breaking App Check, Authentication, and Firestore connectivity in production.
 
----
+> [!WARNING]
+> **reCAPTCHA Enterprise Domain Registration**: For App Check/reCAPTCHA to pass in production, the Vercel deployment domains (e.g. `*.vercel.app` and any custom domains) must be explicitly added to the authorized domains list under your reCAPTCHA Enterprise key in the Google Cloud Console.
 
-## Open Questions
-
-There are no open questions.
-
----
+> [!NOTE]
+> **Firebase Admin SDK on Vercel**: Vercel runs in a serverless environment outside Google Cloud Platform. Consequently, the Firebase Admin SDK on Vercel must be initialized using service account credentials (`FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY`). If these variables are missing or incorrectly configured on Vercel, server-side API requests querying Firestore will fail.
 
 ## Proposed Changes
 
-### Component: Firebase Admin SDK Setup
+### Client Firebase Initialization
 
-#### [NEW] [firebaseAdmin.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/lib/firebaseAdmin.ts)
-- Initialize the Firebase Admin SDK as a singleton.
-- Look for `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` environment variables. If present, initialize using the certificate.
-- Otherwise, fall back to initialization with the default project ID configuration.
-- Export `adminDb` and `adminAuth` helpers.
+Allows the client to leverage the App Check debug token in production/Vercel deployments if `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` is explicitly set in Vercel. This enables verification and debugging on Vercel without a fully configured reCAPTCHA key.
+
+#### [MODIFY] [firebase.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/lib/firebase.ts)
+- Modify client-side App Check initialization to set `self.FIREBASE_APPCHECK_DEBUG_TOKEN` if `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` is defined (regardless of `NODE_ENV`).
+- Add log statements printing the active Firebase project ID, App ID, and environment mode at initialization to verify configuration.
 
 ---
 
-### Component: Shared Authorization Helper
+### Authentication Context
+
+Provides verbose logging at every phase of the Auth state subscription, UID document loading, and default role fallbacks to pin down exact failures.
+
+#### [MODIFY] [AuthContext.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/context/AuthContext.tsx)
+- Log Firebase project IDs: verify that `db.app.options.projectId` matches `auth.app.options.projectId` on the client side.
+- Log details of incoming `firebaseUser` (UID, Email) inside the `subscribeToAuth` callback.
+- Log step-by-step resolution of `waitUntilAppCheckResolved()` and client App Check token retrieve attempts.
+- Log Firestore read request details on `users/{uid}` and log whether the document exists.
+- In the `catch` block for user document fetch, explicitly log the error code, message, and details (identifying if it's due to `permission-denied` or an App Check failure).
+
+---
+
+### Server API Authentication Middleware
+
+Logs specific server-side project configuration details to confirm Admin SDK connection health.
 
 #### [MODIFY] [apiAuth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/utils/apiAuth.ts)
-- Add imports for `adminDb` and `adminAuth` from `../lib/firebaseAdmin` inside functions or check if they are initialized.
-- Refactor `checkAuthAndRole()`:
-  - Add detailed logging of:
-    - Incoming request pathname.
-    - Presence and value of the `Authorization` header.
-    - Verification state of the Firebase ID token.
-    - Decoded UID and email.
-    - User document existence in Firestore.
-    - User's role value from Firestore.
-    - Final authorization decision (Authorized, 401 Unauthorized, 403 Forbidden).
-  - Attempt to verify the token via the Firebase Admin SDK (`adminAuth.verifyIdToken(token)`).
-  - If verification succeeds, retrieve the user document `/users/{uid}` via the Firebase Admin SDK (`adminDb`).
-  - If Admin SDK calls fail (e.g. missing credentials on localhost), fall back to the custom signature verification (`verifyFirebaseToken`) and the Firestore REST API (`getFirestoreDocREST`).
-  - Verify that the target user document exists and check if the role matches the required role (e.g. `"admin"`).
-  - Return `401 Unauthorized` only when the user is truly unauthenticated or validation fails.
-
----
-
-### Component: Firestore Config Services
-
-#### [MODIFY] [geminiConfig.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/geminiConfig.ts)
-- Refactor `getGeminiConfig()` and `saveGeminiConfig()`:
-  - When running on the server (`typeof window === "undefined"`), attempt to read/write `settings/gemini` using the Firebase Admin SDK (`adminDb`).
-  - Fall back to the Firestore REST API (`getFirestoreDocREST` / `setFirestoreDocREST`) if the Admin SDK call fails or credentials are not configured.
-
-#### [MODIFY] [gmailConfig.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/gmailConfig.ts)
-- Refactor `getGmailConfig()`, `saveGmailConfig()`, and `disconnectGmail()`:
-  - When running on the server (`typeof window === "undefined"`), attempt to read/write `settings/gmail` using the Firebase Admin SDK (`adminDb`).
-  - Fall back to the Firestore REST API (`getFirestoreDocREST` / `setFirestoreDocREST`) if the Admin SDK call fails or credentials are not configured.
-
----
-
-### Component: Dependencies
-
-#### [MODIFY] [package.json](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/package.json)
-- Add `firebase-admin` dependency.
-
----
+- Add logging inside `checkAuthAndRole()` to print whether Firebase Admin SDK (`adminDb`, `adminAuth`) is active or if it's using the REST API fallback.
+- Log the server-side environment `process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID`.
 
 ## Verification Plan
 
-### Automated Tests
-- Run `npm run build` to verify types and correct Next.js compilation.
-
 ### Manual Verification
-1. Run `npm run dev` locally.
-2. Log in as an admin user on the frontend.
-3. Access Gemini and Gmail configuration pages and modify settings.
-4. Verify that requests to `POST /api/settings/gemini` and `POST /api/gmail/auth` complete with `200 OK`.
-5. Check terminal/server logs to verify detailed logs for `[API Auth Check]` outputs, showing the decrypted UID, document status, role, and authorization decision.
+1. Review console output on Vercel deployment logs and browser developer console.
+2. Verify that `[Firebase Init] Config Project ID` matches the correct Firebase project name.
+3. Observe the browser console logs during login:
+   - Verify `[AuthContext] Active Firebase Project ID: ...` and `[AuthContext App Check Status] ...`.
+   - Look for `[Firestore Permission Failure]` warnings or `[AuthContext] Error fetching or creating user document for UID: ...`.
+4. If App Check is blocking Firestore reads, register Vercel domains in Google Cloud Console or temporarily set `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` on Vercel to bypass reCAPTCHA Enterprise verification for testing.
+5. Manually log in with Admin, Agent, and Viewer accounts and check if their correct roles are loaded and stats render properly.

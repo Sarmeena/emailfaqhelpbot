@@ -1,57 +1,87 @@
-# Walkthrough: Resolve Shared Authorization Problem with Firebase Admin SDK
+# Walkthrough: Audit & Diagnostic Logging for Deployed Vercel RBAC & App Check Issues
 
-We have successfully resolved the shared authorization issue causing `POST /api/settings/gemini` and `POST /api/gmail/auth` to fail with `401 Unauthorized` / `FirebaseError: Missing or insufficient permissions`. 
+We have audited the authentication, App Check, and role-based access control (RBAC) flow to identify why users default to the `"viewer"` role in production and why the dashboard fails to load data. Detailed diagnostic logs have been added throughout the lifecycle to aid in debugging Vercel configuration discrepancies.
 
-By introducing the Firebase Admin SDK on the server, we bypass App Check and Firestore security rules constraints for backend API routes. We also built a robust fallback to custom verification and the Firestore REST API so that local development settings continue working out-of-the-box.
-
----
-
-## Changes Made
-
-### 1. Added `firebase-admin` Dependency
-- **File modified**: [package.json](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/package.json)
-- Added `"firebase-admin": "^12.1.0"` to the dependencies.
-
-### 2. Created Firebase Admin SDK Initializer
-- **File created**: [firebaseAdmin.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/lib/firebaseAdmin.ts)
-- Initializes the Admin SDK dynamically at runtime to prevent compile-time Turbopack/Webpack errors when `firebase-admin` is not yet installed in local `node_modules`.
-- Checks for `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` environment variables. If present, initializes using the certificate.
-- Otherwise, falls back to the default project ID configuration.
-- Exports `adminDb` and `adminAuth` helpers (which resolve to `null` if the module is not found).
-
-### 3. Refactored Shared Authorization Middleware
-- **File modified**: [apiAuth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/utils/apiAuth.ts)
-- Refactored `checkAuthAndRole()` to:
-  1. Print extensive debugging logs containing the requested endpoint path, the presence and prefix value of the incoming `Authorization` header, token verification steps, decoded client UID/email, Firestore document lookup status, role value, and final authorization decision.
-  2. Perform ID token verification via `adminAuth.verifyIdToken(token)`.
-  3. Fetch the client user's document using `adminDb.collection("users").doc(uid)`.
-  4. **Bypassed Session Deadlocks via Client-Token REST Fallback**: If the Admin SDK is not available (e.g. on localhost without service account credentials), it falls back to signature verification (`verifyFirebaseToken`) and queries the Firestore REST API (`getFirestoreDocREST` / `setFirestoreDocREST`) **by passing the client's own verified ID token**. This completely eliminates the need for server-side email/password authentication (`ensureServerAuth`) and avoids global singleton race conditions or session deadlocks on localhost.
-  5. Correctly enforces required roles (e.g., checks if `role == "admin"` for settings access) and returns 401 only if validation fails.
-
-### 4. Transitioned Settings Services to Admin SDK with Client-Token Fallbacks
-- **Files modified**:
-  - [geminiConfig.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/geminiConfig.ts)
-  - [gmailConfig.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/services/firestore/gmailConfig.ts)
-- Updated server-side config functions (`getGeminiConfig`, `saveGeminiConfig`, `getGmailConfig`, `saveGmailConfig`, `disconnectGmail`) to accept an optional `token?: string` parameter.
-- Attempt to read/write settings using the Firebase Admin SDK.
-- If it fails, they execute REST API fallback queries using the passed client `token` (or fall back to the system backend token if no client token is provided, e.g., inside webhook triggers).
-
-### 5. Configured API Route Handlers
-- **Files modified**:
-  - [route.ts (Gemini settings)](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/settings/gemini/route.ts)
-  - [route.ts (Gmail auth)](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/auth/route.ts)
-  - [route.ts (Gmail status)](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/status/route.ts)
-  - [route.ts (Gmail disconnect)](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/api/gmail/disconnect/route.ts)
-- Extracted the client's `token` from the incoming request's `Authorization: Bearer <token>` header.
-- Forwarded the `token` parameter to the configuration services to ensure REST API queries execute successfully under the authenticated user's permission context.
+Furthermore, we replaced all silent `"viewer"` fallback behaviors with secure, explicit error states so database read/write failures cannot lead to default dashboard access.
 
 ---
 
-## Action Required Outside the Bot
+## 1. Identified Issues & Solutions
 
-To finalize the installation and test the changes:
-1. **Stop your active `npm run dev` server** in the terminal.
-2. **Run `npm install`** in the project root directory (`c:\Users\Windows 11\Documents\email-faq-help-bot`) to install `firebase-admin`.
-3. **Restart the development server** using `npm run dev`.
-4. **Log in as an Admin user** and access/modify the Gmail and Gemini settings pages to ensure they save and load successfully.
-5. **Check the Next.js server console** to monitor the detailed `[API Auth Check]` logs showing the authorization step-by-step decision.
+### A. App Check reCAPTCHA Failure Blocking Firestore
+- **Symptom**: Console logs show `AppCheck: ReCAPTCHA error (appCheck/recaptcha-error)`. Client-side calls to read from or write to Firestore fail with `permission-denied`.
+- **Cause**: In production on Vercel (`NODE_ENV === "production"`), the app initializes `ReCaptchaEnterpriseProvider` using the configured site key. If the site key is invalid, or if the Vercel deployment domains (e.g. `*.vercel.app`) have not been whitelisted under the reCAPTCHA Enterprise key in the Google Cloud Console, App Check validation fails. This blocks all Firestore operations from the client-side SDK.
+- **Solution**: Enabled App Check debug mode support in production. If `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` is explicitly set in Vercel's environment variables, the client SDK will configure and use the debug provider. Additionally, Vercel deployment domains must be whitelisted in the reCAPTCHA console.
+
+### B. Removed Silent Fallback to Viewer Role
+- **Symptom**: Previously, when client-side Firestore reads failed (such as due to App Check blocks), the `catch` block caught the error and silently fell back to `setRole("viewer")`. This allowed access to the Viewer dashboard, but the dashboard rendered no data because subsequent Firestore operations were blocked.
+- **Solution**: 
+  - **Client-side**: Modified [AuthContext.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/context/AuthContext.tsx) to set the role to `"error"` instead of silently defaulting.
+  - **Server-side middleware**: Modified [apiAuth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/utils/apiAuth.ts) to check for read/write errors and throw descriptive authorization exceptions rather than proceeding with a default `"viewer"` status.
+
+### C. Added Route Guard Protection for Failed Loadings
+- **Symptom**: If the user's role profile fails to load, we should not grant dashboard access.
+- **Solution**: Modified [ProtectedRoute.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/auth/ProtectedRoute.tsx) to immediately redirect the user to `/unauthorized` if the role is missing or set to `"error"`.
+
+### D. Clear User Feedback on Unauthorized Page
+- **Symptom**: User redirected to `/unauthorized` is confused.
+- **Solution**: Updated [unauthorized/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/unauthorized/page.tsx) to check if the role is missing or `"error"`. It will display a clear description indicating that a Firestore read error or App Check block occurred, rather than saying "registered as a viewer".
+
+### E. Build-Time Environment Variable Pitfalls
+- **Symptom**: Configuration values appear blank or mismatch.
+- **Cause**: Next.js client-side variables (`NEXT_PUBLIC_`) are statically embedded at **build time**. If the environment variables were not registered in Vercel settings prior to building, they will compile as empty/undefined in production.
+- **Solution**: Log configuration metadata (such as the active project ID and app ID) during initialization.
+
+---
+
+## 2. Changes Made
+
+### 1. Updated Firebase Initialization
+- **File**: [firebase.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/lib/firebase.ts)
+- Configured client-side App Check to support `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` in production if present in environment variables.
+- Added logs to output the initialized Firebase config's `projectId`, `appId`, and active execution mode.
+
+### 2. Added Verbose Client Auth Diagnostics
+- **File**: [AuthContext.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/context/AuthContext.tsx)
+- Logs client-side Firestore vs. Auth project ID variables: `db.app.options.projectId` vs. `auth.app.options.projectId`.
+- Logs state transitions, App Check resolution, and Firestore request steps for `users/{uid}`.
+- Sets role to `"error"` on database loading failure rather than silently defaulting to `"viewer"`.
+
+### 3. Added Guarding and Redirection on Falsy Role
+- **File**: [ProtectedRoute.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/components/auth/ProtectedRoute.tsx)
+- Replaces generic checks. If `!role` or `role === "error"`, it blocks child component mounting and redirects to `/unauthorized`.
+
+### 4. Detailed Explanations on Access Denied Page
+- **File**: [unauthorized/page.tsx](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/app/unauthorized/page.tsx)
+- Checks if role is missing or set to `"error"` and displays a helpful database/App Check diagnostic instruction.
+
+### 5. Added Server API Auth Diagnostics
+- **File**: [apiAuth.ts](file:///c:/Users/Windows%2011/Documents/email-faq-help-bot/src/utils/apiAuth.ts)
+- Logs server-side active `projectId`.
+- Logs availability check for dynamic import of `firebase-admin` helpers (`adminDb` and `adminAuth`).
+- Throws descriptive exceptions instead of silently fallback to `"viewer"` if database document reads or writes fail.
+
+---
+
+## 3. Recommended Verifications & Setup on Vercel
+
+1. **Verify Vercel Environment Variables**:
+   Ensure the following variables are configured in Vercel project settings **before triggering a new deployment build**:
+   - `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID` (Verify it matches the production Firebase project!)
+   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+   - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
+   - `FIREBASE_CLIENT_EMAIL` (For server-side Admin SDK verification)
+   - `FIREBASE_PRIVATE_KEY` (For server-side Admin SDK verification)
+
+2. **Add Authorized Domains in reCAPTCHA Enterprise**:
+   - Go to Google Cloud Console -> reCAPTCHA Enterprise.
+   - Edit your Site Key.
+   - Add your Vercel deployment domain (e.g., `*.vercel.app` and any custom domains) to the **Authorized Domains** list.
+
+3. **Verify via Debug Token (Optional)**:
+   - For troubleshooting, generate an App Check debug token in the Firebase console.
+   - Set it as `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN` in Vercel settings and trigger a build. This will bypass reCAPTCHA and allow verified Firestore reads.

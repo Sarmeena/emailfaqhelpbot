@@ -37,8 +37,15 @@ export default function UnauthorizedPage() {
         </h1>
 
         <p className="mt-4 text-base text-gray-600 max-w-md">
-          You do not have the required permissions to access this page. 
-          Your current account is registered as a <span className="font-bold text-gray-800 capitalize">{role || "viewer"}</span>.
+          {!role || role === "error" ? (
+            <span>
+              We encountered a database error while retrieving your user profile role. Please check if your account exists in the Firebase Firestore <code>users</code> collection, or if your client connection is being blocked by Firestore Security Rules or Firebase App Check configurations.
+            </span>
+          ) : (
+            <span>
+              You do not have the required permissions to access this page. Your current account is registered as a <span className="font-bold text-gray-800 capitalize">{role}</span>.
+            </span>
+          )}
         </p>
 
         {/* User context information */}

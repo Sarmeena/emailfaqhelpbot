@@ -1,12 +1,6 @@
-# Tasks: Resolve Shared Authorization Problem with Firebase Admin SDK
+# TODO: Audit and Resolve Post-Deployment Auth, App Check, and RBAC Issues on Vercel
 
-- `[x]` Install `firebase-admin` dependency (added to package.json)
-- `[x]` Create Firebase Admin SDK initializer at `src/lib/firebaseAdmin.ts`
-- `[x]` Update shared auth middleware `checkAuthAndRole` in `src/utils/apiAuth.ts`
-  - `[x]` Integrate Admin SDK token verification and document reads
-  - `[x]` Add detailed logging of authorization decisions
-  - `[x]` Implement local development fallback to custom verify/REST API
-  - `[x]` Refactor REST API fallback to use client token instead of server email/pass login
-- `[x]` Update `src/services/firestore/geminiConfig.ts` to use Admin SDK on the server with client token REST fallback
-- `[x]` Update `src/services/firestore/gmailConfig.ts` to use Admin SDK on the server with client token REST fallback
-- `[x]` Verify and compile changes in next dev environment
+- `[x]` Update client-side Firebase initialization in `src/lib/firebase.ts` to support debug tokens in production and add initialization logs.
+- `[x]` Add detailed logging to `src/context/AuthContext.tsx` during auth state changes, App Check status verification, and Firestore user role fetching/creation.
+- `[x]` Add logging to `src/utils/apiAuth.ts` server middleware.
+- `[x]` Verify build status and confirm all changes compile.

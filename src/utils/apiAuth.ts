@@ -202,6 +202,14 @@ export async function checkAuthAndRole(
 
   const token = authHeader.split(" ")[1];
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  console.log(`[API Auth Check Diagnostics] Server-Side active projectId: '${projectId}'`);
+  try {
+    const { adminDb, adminAuth } = await import("../lib/firebaseAdmin");
+    console.log(`[API Auth Check Diagnostics] Firebase Admin SDK status - adminDb available: ${!!adminDb}, adminAuth available: ${!!adminAuth}`);
+  } catch (err) {
+    console.warn("[API Auth Check Diagnostics] Failed to check firebaseAdmin availability:", err);
+  }
+  
   if (!projectId) {
     console.error("[API Auth Check] Firebase Project ID env variable is not configured");
     return {
@@ -236,6 +244,7 @@ export async function checkAuthAndRole(
     let role = "viewer";
     let docExists = false;
     let userData: any = null;
+    let readError: any = null;
 
     try {
       const { adminDb } = await import("../lib/firebaseAdmin");
@@ -268,7 +277,12 @@ export async function checkAuthAndRole(
       } catch (restReadError) {
         console.error("[API Auth Check] REST API fallback read failed:", restReadError);
         docExists = false;
+        readError = restReadError;
       }
+    }
+
+    if (readError) {
+      throw new Error(`Failed to load user role from Firestore due to read errors: ${readError instanceof Error ? readError.message : String(readError)}`);
     }
 
     // If the document does not exist, we create a default viewer document
@@ -291,6 +305,7 @@ export async function checkAuthAndRole(
         docExists = true;
       } catch (err) {
         console.error("[API Auth Check] Error creating user document during checkAuthAndRole:", err);
+        throw new Error(`Failed to create default user profile in Firestore: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 

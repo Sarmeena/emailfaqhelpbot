@@ -25,18 +25,24 @@ export let appCheckInstance: any = null;
 let appCheckPromise: Promise<any> | null = null;
 
 if (typeof window !== "undefined") {
+  console.log(`[Firebase Client Init] Starting Firebase Initialization. Project ID: '${firebaseConfig.projectId}', App ID: '${firebaseConfig.appId}', Mode: '${process.env.NODE_ENV}'`);
+  
   const globalWithAppCheck = globalThis as any;
   if (!globalWithAppCheck.firebaseAppCheckInitialized) {
     const rawSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
     // Clean any quotes, whitespace, or newlines
     const siteKey = rawSiteKey.replace(/['"\r\n]/g, "").trim();
+    const debugToken = process.env.NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN;
     
+    if (debugToken || process.env.NODE_ENV === "development") {
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken || true;
+      console.log(`[Firebase Client Init] App Check Debug Mode enabled. Custom Token Present: ${!!debugToken}`);
+    }
+
     if (siteKey) {
       try {
-        if (process.env.NODE_ENV === "development") {
-          // @ts-ignore
-          self.FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN || true;
-        }
+        console.log(`[Firebase Client Init] Initializing ReCaptchaEnterpriseProvider. Site Key Length: ${siteKey.length}`);
         const appCheck = initializeAppCheck(app, {
           provider: new ReCaptchaEnterpriseProvider(siteKey),
           isTokenAutoRefreshEnabled: true,
@@ -44,18 +50,18 @@ if (typeof window !== "undefined") {
         globalWithAppCheck.firebaseAppCheckInitialized = appCheck;
         globalWithAppCheck.firebaseAppCheckPromise = getToken(appCheck, false)
           .then((res) => {
-            console.log("[App Check Client] Token successfully retrieved. Status: ACTIVE. Length:", res.token.length);
+            console.log("[Firebase Client Init] App Check Token fetched successfully. Length:", res.token.length);
             return res;
           })
           .catch((err) => {
-            console.error("[App Check Client] Error fetching token:", err);
+            console.error("[Firebase Client Init] App Check Token fetch promise rejected:", err);
             throw err;
           });
       } catch (error) {
-        console.warn("[App Check Client] Initialization failed/already initialized:", error);
+        console.warn("[Firebase Client Init] App Check initialization failed/already initialized:", error);
       }
     } else {
-      console.warn("[App Check Client] No reCAPTCHA site key found in env variables.");
+      console.warn("[Firebase Client Init] No reCAPTCHA site key found in environment variables (NEXT_PUBLIC_RECAPTCHA_SITE_KEY).");
     }
   }
   appCheckInstance = globalWithAppCheck.firebaseAppCheckInitialized;

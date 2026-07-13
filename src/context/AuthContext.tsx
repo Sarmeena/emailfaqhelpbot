@@ -80,18 +80,24 @@ export function AuthProvider({
     const unsubscribe = subscribeToAuth(async (firebaseUser) => {
       // Force loading to true during transition / auth change
       setLoading(true);
-      console.log(`[AuthContext] Auth state changed. firebaseUser UID: ${firebaseUser ? firebaseUser.uid : "null"}`);
+      console.log(`[AuthContext] Auth state changed. firebaseUser UID: ${firebaseUser ? firebaseUser.uid : "null"}, Email: ${firebaseUser ? firebaseUser.email : "null"}`);
 
       if (firebaseUser) {
         try {
+          // Log active Firebase configurations to detect mismatch
+          const dbProjectId = db.app.options.projectId;
+          const authProjectId = auth.app.options.projectId;
+          console.log(`[AuthContext Diagnostics] Client Active Project ID: '${dbProjectId}' (Auth Project ID: '${authProjectId}'). Match: ${dbProjectId === authProjectId}`);
+
           // Await App Check token verification / initialization
+          console.log("[AuthContext Diagnostics] Waiting for App Check token resolution...");
           await waitUntilAppCheckResolved();
 
           // Log App Check Token Status
           if (appCheckInstance) {
             try {
               const appCheckTokenRes = await getToken(appCheckInstance, false);
-              console.log("[AuthContext App Check Status] Token exists and is valid. Length:", appCheckTokenRes.token.length);
+              console.log("[AuthContext App Check Status] Token exists. Length:", appCheckTokenRes.token.length);
             } catch (tokenErr) {
               console.error("[AuthContext App Check Status] Failed to get App Check token:", tokenErr);
             }
@@ -99,6 +105,7 @@ export function AuthProvider({
             console.log("[AuthContext App Check Status] App Check instance is not initialized.");
           }
 
+          console.log(`[AuthContext Diagnostics] Querying Firestore for user doc: 'users/${firebaseUser.uid}'`);
           const userDocRef = doc(db, "users", firebaseUser.uid);
           let userDocSnapshot = await getDoc(userDocRef);
           
@@ -106,10 +113,9 @@ export function AuthProvider({
           if (userDocSnapshot.exists()) {
             const data = userDocSnapshot.data();
             userRole = data.role || "viewer";
-            console.log(`[AuthContext] Loaded existing user role: '${userRole}' for UID: ${firebaseUser.uid}`);
+            console.log(`[AuthContext Diagnostics] User doc found. UID: '${firebaseUser.uid}', Role: '${userRole}'`);
           } else {
-            console.log(`[AuthContext] User role document does not exist for UID: ${firebaseUser.uid}. Creating default 'viewer' role.`);
-            // Firestore document does not exist, automatically create one
+            console.log(`[AuthContext Diagnostics] User doc does not exist. Creating default 'viewer' for UID: '${firebaseUser.uid}'`);
             const newUserData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || "",
@@ -117,24 +123,26 @@ export function AuthProvider({
               createdAt: serverTimestamp(),
             };
             await setDoc(userDocRef, newUserData);
+            console.log(`[AuthContext Diagnostics] Default doc created. Re-fetching...`);
             
-            // Re-fetch to ensure propagation and verify it exists
             userDocSnapshot = await getDoc(userDocRef);
             if (userDocSnapshot.exists()) {
               const data = userDocSnapshot.data();
               userRole = data.role || "viewer";
             }
-            console.log(`[AuthContext] Automatically created default viewer document for UID: ${firebaseUser.uid}`);
+            console.log(`[AuthContext Diagnostics] User doc re-fetch complete. UID: '${firebaseUser.uid}', Final Role: '${userRole}'`);
           }
           
           setRole(userRole);
           setUser(firebaseUser);
         } catch (error: any) {
-          console.error(`[AuthContext] Error fetching or creating user document for UID: ${firebaseUser.uid}. Error:`, error);
+          console.error(`[AuthContext Diagnostics] Fatal error during user registration/role lookup for UID: ${firebaseUser.uid}:`, error);
           if (error.code === "permission-denied" || error.message?.includes("permission")) {
-            console.error(`[Firestore Permission Failure] Read or Write denied on users/${firebaseUser.uid}. Authenticated UID: ${firebaseUser.uid}`);
+            console.error(`[Firestore Permission Failure] Read/Write access denied on 'users/${firebaseUser.uid}'. User is authenticated as UID: ${firebaseUser.uid}.`);
+            console.error("[Firestore Permission Failure] Troubleshooting tip: Ensure Firestore security rules allow 'read' on users/{userId} and check if App Check is block-enforcing unverified client requests.");
           }
-          setRole("viewer");
+          console.log("[AuthContext Diagnostics] Setting user role to 'error' due to load failure.");
+          setRole("error");
           setUser(firebaseUser);
         }
       } else {
